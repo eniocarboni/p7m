@@ -9,8 +9,11 @@ Permette di:
 Questo script funziona sotto linux sia in modalità testuale che grafica (usare l'opzione -g)
 
 ## SINOSSI
-```p7m [-g] [-v | -c | -d] file.p7m```
-```p7m [-g] -p ```
+```
+  p7m [-g] [-v | -c | -d] file.p7m
+  p7m [-g] -p 
+```
+
 **dove**
 * -p
   serve per scaricare la versione aggiornata del portafoglio dei [CA](https://it.wikipedia.org/wiki/Certificate_authority) registrati al [CNIPA](http://archivio.cnipa.gov.it/site/it-IT/).
