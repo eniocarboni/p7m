@@ -1,0 +1,591 @@
+#! /bin/bash
+
+# ----------------------------------------
+# p7m: script per la gestione dei file con firma digitale nel formato CADES.
+# Vedi https://github.com/eniocarboni/p7m
+# Author: Enio Carboni
+# ----------------------------------------
+
+# DWL_ORDER: Order to choose for download program
+DWL_ORDER="wget curl GET"
+# DIALOG_ORDER: Order to choose of x graphic dialog
+DIALOG_ORDER="kdialog zenity xmessage"
+# OPEN_ORDER: Order to choose for opening program
+OPEN_ORDER="xdg-open gvfs-open gnome-open"
+# CA_OLD_TIME_SEC: after that second the CA file will be download
+CA_OLD_TIME_SEC=1296000
+# XML_CERTS: url of cnipa xml certs
+XML_CERTS='https://applicazioni.cnipa.gov.it/TSL/_IT_TSL_signed.xml'
+# ROTATE_NUMBER: number of rotations (for same files)
+ROTATE_NUMBER=10
+# MIMETYPES: path of file mime.types
+MIMETYPES=/etc/mime.types
+CONF_DIR=${HOME}/.config/p7m
+
+# ------------------------------------------------------------------------
+
+declare -A msg
+# msg lang (def it, en)
+# Prendo solo i primi 2 caratteri della lingua (es it, en).
+# LANG=C diventa LANG=it ed e' la lingua ufficiale
+# it
+msg[it:titolo:p7m]="P7M"
+msg[it:titolo:openssl]="Openssl"
+msg[it:titolo:openssl:verify]="Openssl verifica firma"
+msg[it:titolo:openssl:cert]="Openssl Certificato"
+msg[it:titolo:openssl:asn1parse]="Openssl debug"
+msg[it:titolo:download]="Download"
+msg[it:titolo:cert]="Cert"
+msg[it:titolo:errore]="Errore"
+msg[it:titolo:attenzione]="Attenzione"
+msg[it:titolo:dettagli]="Dettagli"
+
+msg[it:errore:file:ext]="Bisogna passare un file con estensione .p7m come parametro"
+msg[it:errore:file:non_esiste]="Non esiste il file. Controllare meglio"
+msg[it:errore:file:conf_dir]="Impossibile creare la directory .p7m nella tua HOME"
+msg[it:openssl:estrazione:errore]="estrazione file terminata con errore"
+msg[it:openssl:verifica:errore:formato]="Errore nel formato del file"
+msg[it:openssl:verifica:ok:ok]="Verifica certificato riuscita (riferimento temporale entro la validità del certificato)\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
+msg[it:openssl:verifica:non_ok:ok]="Verifica certificato non riuscita ma riferimento temporale entro la validità del certificato"
+msg[it:openssl:verifica:non_ok_scaduto:ok]="Verifica certificato non riuscita (certificato scaduto) ma riferimento temporale entro la validità del certificato\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
+msg[it:openssl:verifica:non_ok:non_ok]="Verifica certificato non riuscita e riferimento temporale non valido al di fuori della validità del certificato"
+msg[it:openssl:verifica:non_ok_scaduto:non_ok]="Verifica certificato non riuscita (certificato scaduto) e riferimento temporale non valido al di fuori della validità del certificato\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
+msg[it:openssl:verifica:errore:continuo]="Provo comunque ad estrarre il contenuto?"
+msg[it:openssl:cert:errore]="Impossibile estrarre il certificato"
+msg[it:openssl:cert:validita]="Validità certificato: %s"
+msg[it:openssl:asn1parse:error]="Impossibile estrarre informazioni dal file"
+msg[it:openssl:asn1parse:timestamp]="Riferimento temporale: %s"
+
+msg[it:openssl:estrazione:percorso]="Estratto il file in "
+msg[it:eseguibile:openssl:non_trovato]="Devi installare 'openssl' prima di poter usare questo programma"
+msg[it:eseguibile:open_file:non_trovato]="Non trovo nessuno dei comandi:\n ${OPEN_ORDER}\nNon so come aprire il file estratto"
+msg[it:eseguibile:download_url:non_trovato]="Nessun programma di download trovato! Impossibile continuare."
+msg[it:download_url:ca:ok]="CA scaricato perfettamente in"
+msg[it:download_url:ca:non_ok]="Impossibile scaricare il CA in questo momento ... riprovare successivamente"
+msg[it:download_url:ca:mancante]="Manca il CA, scaricarlo con l'opzione -p"
+msg[it:download_url:ca:attendi]="Inizio scaricamento CA ... attendi un attimo"
+msg[it:file:diritti:scrittura]="Impossibile scrivere in "
+msg[it:file:diritti:scrittura:alternativa]="Estratto comunque il file in "
+msg[it:file:sovrascivere]="Sovrascrivere il file "
+
+# en
+msg[en:titolo:p7m]="P7M"
+msg[en:titolo:openssl]="Openssl"
+msg[en:titolo:openssl:verify]="Openssl verifica firma"
+msg[en:titolo:openssl:cert]="Openssl Certificato"
+msg[en:titolo:openssl:asn1parse]="Openssl debug"
+msg[en:titolo:download]="Download"
+msg[en:titolo:cert]="Cert"
+msg[en:titolo:errore]="Error"
+msg[en:titolo:attenzione]="Warning"
+msg[en:titolo:dettagli]=" Details"
+
+msg[en:errore:file:ext]="You must pass a .p7m file as a parameter"
+msg[en:errore:file:non_esiste]="There is no file. Check better"
+msg[en:errore:file:conf_dir]="Unable to create the .p7m directory in your HOME"
+msg[en:openssl:estrazione:errore]="File extraction ended with error"
+msg[en:openssl:verifica:errore:formato]="Errore nel formato del file"
+msg[en:openssl:verifica:ok:ok]="Signature verified correctly (timestamps within the validity of the certificate)\n\nThe signature was made in %s from %p1\nOrganization: %p2\nTax code: %p3\nIssuer: %p4"
+msg[en:openssl:verifica:non_ok:ok]="Signature verification failed but timestamps within the validity of the certificate"
+msg[en:openssl:verifica:non_ok_scaduto:ok]="Signature verification failed (certificate expired) but timestamps within the validity of the certificate\n\nThe signature was made in %s from %p1\nOrganization: %p2\nTax code: %p3\nIssuer: %p4"
+msg[en:openssl:verifica:non_ok:non_ok]="Signature verification failed and timestamps failed, outside the validity of the certificate"
+msg[en:openssl:verifica:non_ok_scaduto:non_ok]="Signature verification failed (certificate expired) and timestamps failed, outside the validity of the certificate\n\nThe signature was made in %s from %p1\nOrganization: %p2\nTax code: %p3\nIssuer: %p4"
+msg[en:openssl:verifica:errore:continuo]="Do I still try to extract the content?"
+msg[en:openssl:cert:errore]="Unable to extract the certificates"
+msg[en:openssl:cert:validita]="Certificate validity:: %s"
+msg[en:openssl:asn1parse:error]="Unable to exact any info from this file"
+msg[en:openssl:asn1parse:timestamp]="Timestamps: %s"
+
+msg[en:openssl:estrazione:percorso]="Extract the file in "
+msg[en:eseguibile:openssl:non_trovato]="You must install openssl first"
+msg[en:eseguibile:open_file:non_trovato]="Extract the file"
+msg[en:eseguibile:download_url:non_trovato]="No download program found! It is not possible to continue."
+msg[en:download_url:ca:ok]="CA downloaded perfectly into"
+msg[en:download_url:ca:non_ok]="Unable to download the 'CA' at this time ... try again later"
+msg[en:download_url:ca:mancante]="The CA is missing, download it with the -p option"
+msg[en:download_url:ca:attendi]="Starting download the CA ... wait, please"
+msg[en:file:diritti:scrittura]="Unable to write in "
+msg[en:file:diritti:scrittura:alternativa]="Extract the file in "
+msg[en:file:sovrascivere]="Overwrite the file "
+
+get_lang_message() {
+	L=${LANG%.*}
+	L=${L%_*}
+	if [ "$L" = "C" ]; then 
+		L='en'
+	elif [ -z "$L" ]; then
+		L='it'
+	fi
+	echo $L
+}
+
+_msg() {
+	if [ -z "$1" ]; then
+		return
+	fi
+	if [ -n "${msg[$L:$1]}" ]; then
+		value="${msg[$L:$1]}"
+	else 
+		value="${msg[it:$1]}"
+	fi
+	if [ -n "$2" ]; then
+		value=$(echo $value | sed "s/\%s/$2/g")
+		value=$(echo $value | sed "s/\%p1/$3/g")
+		value=$(echo $value | sed "s/\%p2/$4/g")
+		value=$(echo $value | sed "s/\%p3/$5/g")
+		value=$(echo $value | sed "s/\%p4/$6/g")
+		value=$(echo $value | sed "s/\%p5/$7/g")
+	fi
+	echo -e $value
+}
+rotate_file() {
+	if [ -z "$1" -o ! -f "$1" ]; then 
+		return
+	fi
+	rotate=$((${ROTATE_NUMBER} -1))
+	for r in `seq ${rotate} -1 1`; do
+		rr=$(($r+1))
+		if [ -f "$1.$r" ]; then
+			mv "$1.$r" "$1.$rr"
+		fi
+	done
+	mv "$1" "$1.1"
+}
+
+find_command() {
+	com=''
+	for c in "$@"; do
+		if [ `which ${c}` ]; then
+			com=${c}
+			break
+		fi
+	done
+	echo $com
+}
+download() {
+	rotate_file "${CONF_DIR}/.dwn.log"
+	touch "${CONF_DIR}/.dwn.log"
+	if [ -z "${DWN}" ]; then 
+		err "$(_msg "eseguibile:download_url:non_trovato")\n[${DWL_ORDER}]" "$(_msg "titolo:download")"
+		exit 1
+	fi
+	if [ ${DWN} = 'wget' ]; then
+	        wget --tries=2 -o ${CONF_DIR}/.dwn.log -O "$2" "$1"
+	elif [ ${DWN} = 'curl' ]; then
+		curl --progress-bar -v -o "$2" --retry 2 "$1" 2>${CONF_DIR}/.dwn.log
+	elif [ ${DWN} = 'GET' ]; then
+		GET "$1" >"$2"
+	fi
+	return $?
+}
+call_kdialog() {
+	if [ $1 = 'text' ]; then
+		kdialog --title "$3" --msgbox "$2" 2>/dev/null
+	elif [ $1 = 'warn' ]; then
+		kdialog --title "$3" --sorry "$2" 2>/dev/null
+	elif [ $1 = 'err' ]; then
+		kdialog --title "$3" --error "$2" 2>/dev/null
+	elif [ $1 = 'err_detail' ]; then
+		kdialog --title "$4" --detailederror "$2" "$3" 2>/dev/null
+	elif [ $1 = 'notify' ]; then
+		kdialog --title "$3" --passivepopup "$2" 5 2>/dev/null
+	elif [ $1 = 'warn_yesno' ]; then
+		kdialog --title "$4" --warningyesno "$2\n\n$3" 2>/dev/null
+	fi
+}
+call_zenity() {
+	if [ $1 = 'text' ]; then
+		if [ ${#2} -gt 150 ]; then 
+			echo -e "$2" | zenity --text-info --width=600 --height=500 --title="$3" 2>/dev/null
+		else
+			zenity --info --title="$3" --text="$2" 2>/dev/null
+		fi
+	elif [ $1 = 'warn' ]; then
+		zenity --warning --title="$3" --text="$2" 2>/dev/null
+	elif [ $1 = 'err' ]; then
+		zenity --error --title="$3" --text="$2" 2>/dev/null
+	elif [ $1 = 'err_detail' ]; then
+		zenity --error --title="$4" --text="$2\n\n$3" 2>/dev/null
+	elif [ $1 = 'notify' ]; then
+		zenity --notification --title="$3" --text="$2" 2>/dev/null
+	elif [ $1 = 'warn_yesno' ]; then
+		zenity --question --title="$4" --text="$2\n\n$3" 2>/dev/null
+	fi
+}
+call_xmessage() {
+	if [ $1 = 'text' ]; then
+		echo -e "$2" | xmessage -nearmouse -file - 2>/dev/null
+	elif [ $1 = 'warn' ]; then
+		echo -e "$2" | xmessage -nearmouse -file - 2>/dev/null
+	elif [ $1 = 'err' ]; then
+		echo -e "$2" | xmessage -nearmouse -file - 2>/dev/null
+	elif [ $1 = 'err_detail' ]; then
+		echo -e "$2\n\n$3" | xmessage -nearmouse -file - 2>/dev/null
+	elif [ $1 = 'notify' ]; then
+		echo -e "$2"
+	elif [ $1 = 'warn_yesno' ]; then
+		echo -e "$2\n\n$3"
+	fi
+}
+display() {
+	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
+		call_${XDIALOG} "text" "$@"
+	else
+		echo -e "$1"
+	fi
+}
+notify() {
+	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
+		call_${XDIALOG} "notify" "$@"
+	else
+		echo -e "$1"
+	fi
+}
+warn() {
+	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
+		call_${XDIALOG} "warn" "$@"
+	else
+		echo -e "$1"
+	fi
+}
+err() {
+	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
+		call_${XDIALOG} "err" "$@"
+	else
+		echo -e "$1"
+	fi
+}
+err_detail() {
+	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
+		call_${XDIALOG} "err_detail" "$@"
+	else
+		echo -e "$1\n\n-------$(_msg 'titolo:dettagli')-------\n$2\n----------------------\n"
+	fi
+}
+warn_yesno() {
+	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
+		call_${XDIALOG} "warn_yesno" "$@"
+	else
+		echo -e "$1\n\n$2"
+	fi
+}
+	
+getnewcert() {
+	if [ ! -f ${CONF_DIR}/ca.pem ]; then
+	       getcert notify
+	else
+ 		sec_old=$(date -r ${CONF_DIR}/ca.pem +%s)
+		sec_now=$(date +%s)
+		if [ $(( $sec_now - $sec_old )) -gt ${CA_OLD_TIME_SEC} ]; then
+			getcert notify
+		fi
+	fi
+}
+getcert() {
+  mkdir -p ${CONF_DIR}
+  if [ ! -d "${CONF_DIR}" ]; then
+	  err "$(_msg 'errore:file:conf_dir')" "$(_msg 'titolo:cert')"
+	return 1
+  fi
+  notify "$(_msg 'download_url:ca:attendi')" "$(_msg 'titolo:cert')"
+  rotate_file ${CONF_DIR}/cnipa_signed.xml
+  download "${XML_CERTS}" "${CONF_DIR}/cnipa_signed.xml"
+  for i in `grep '<X509Certificate' ${CONF_DIR}/cnipa_signed.xml`; do 
+	  echo -e "-----BEGIN CERTIFICATE-----"
+	  echo $i| sed -e 's/<\/*X509Certificate>//g'| openssl base64 -d -A| openssl base64
+	  echo -e "-----END CERTIFICATE-----"
+  done >${CONF_DIR}/ca.pem.partial
+if [ -s ${CONF_DIR}/ca.pem.partial ]; then
+	rotate_file "${CONF_DIR}/ca.pem"
+	mv "${CONF_DIR}/ca.pem.partial" "${CONF_DIR}/ca.pem"
+	if [ "$1" ]; then
+		notify "$(_msg 'download_url:ca:ok') ${CONF_DIR}/ca.pem" "$(_msg 'titolo:cert')"
+	else
+		display "$(_msg 'download_url:ca:ok') ${CONF_DIR}/ca.pem" "$(_msg 'titolo:cert')"
+	fi
+else
+	rm -f ${CONF_DIR}/ca.pem.partial
+	if [ "$1" ]; then
+		notify "$(_msg 'download_url:ca:non_ok')\n\n[logs]:\n `cat ${CONF_DIR}/.dwn.log`" "$(_msg 'titolo:cert')"
+	else
+		err_detail "$(_msg 'download_url:ca:non_ok')" "'[logs]:\n `cat ${CONF_DIR}/.dwn.log`'" "$(_msg 'titolo:cert')"
+	fi
+	return 2
+fi
+return 0
+}
+
+verify() {
+	if [ ! -f "${CONF_DIR}/ca.pem" -o ! -s "${CONF_DIR}/ca.pem" ]; then
+		warn "$(_msg 'download_url:ca:mancante')"
+		return 1
+	fi
+	err=`openssl smime -verify -CAfile "${CONF_DIR}/ca.pem" -in "$1" -inform DER -out /dev/null 2>&1`
+	R=$?
+	if [ $R = "2" ]; then
+		if [ -z "$2" ]; then
+			err_detail "$(_msg 'openssl:verifica:errore:formato')" "$err" "$(_msg 'titolo:openssl:verify')"
+		else 
+			echo "$(_msg 'openssl:verifica:errore:formato');$err"
+		fi
+		return $R
+	fi
+	timestamp_orig=`openssl asn1parse -inform DER -in "$1"|sed  -n -e '/:signingTime/,/UTCTIME/p'| grep UTCTIME | awk '{print $7}'| sed 's/[:Z]//g'`
+	if [ ${#timestamp_orig} -ne 12 ]; then
+		timestamp_msg="$(_msg 'openssl:verifica:timestamp:mancante')"
+       	else 
+		timestamp_yymmgg="$(echo $timestamp_orig | sed -e 's/^\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)/\1-\2-\3 \4:\5:\6/') UTC"
+		timestamp=$(date --date="${timestamp_yymmgg}" "+%s")
+		timestamp_readable=$(date --date="${timestamp_yymmgg}" "+%Y-%m-%d %H:%M:%S %Z")
+	fi
+	cert=$(openssl pkcs7 -print_certs -text -inform der -in "$1" 2>&1)
+	cn=$(echo "$cert"| grep 'Subject:'|sed -e 's/^.*CN=//' -e 's/[\/,].*$//' 2>&1)
+	cf=$(echo "$cert"| grep 'Subject:'|sed -e 's/^.*serialNumber=//' -e 's/[\/,].*$//' -e 's/^.*://' 2>&1)
+	ou=$(echo "$cert"| grep 'Subject:'|sed -e 's/^.*O=//' -e 's/[\/,].*$//' -e 's/^.*://' 2>&1)
+	issuer=$(echo "$cert"| grep 'Issuer:'|sed -e 's/^.*CN=//' -e 's/[\/,].*$//' 2>&1)
+
+	
+	notbefore=$(echo "$cert"| grep 'Not Before\s*:' | sed -e 's/^.*Not Before\s*:\s*//')
+	notafter=$(echo "$cert"| grep -E 'Not After\s*:' | sed -e 's/^.*Not After\s*:\s*//')
+	notbefore_ts=$(date --date="${notbefore}" "+%s")
+	notafter_ts=$(date --date="${notafter}" "+%s")
+	notbefore_readable=$(date --date="${notbefore}" "+%Y-%m-%d %H:%M:%S %Z")
+        notafter_readable=$(date --date="${notafter}" "+%Y-%m-%d %H:%M:%S %Z")
+	now=$(date "+%s")
+	timbro="  "$(_msg 'openssl:asn1parse:timestamp' "${timestamp_readable}")"\n  "$(_msg 'openssl:cert:validita' "${notbefore_readable} - ${notafter_readable}")
+        msg_ver=""
+	msg_ver_details=""
+	if [ $R = "0" ]; then
+		msg_ver="$(_msg 'openssl:verifica:ok:ok' "${timestamp_readable}" "${cn}" "${ou}" "${cf}" "${issuer}")"
+	else
+		if [ "${now}" -lt "${notbefore_ts}" -o "${now}" -gt "${notafter_ts}" ]; then
+			if [ "${timestamp}" -ge "${notbefore_ts}" -a "${timestamp}" -le "${notafter_ts}" ]; then
+				msg_ver="$(_msg 'openssl:verifica:non_ok_scaduto:ok' "${timestamp_readable}" "${cn}" "${ou}" "${cf}" "${issuer}")"
+				msg_ver_details="$err [exit code $R]"
+			else
+				msg_ver="$(_msg 'openssl:verifica:non_ok_scaduto:non_ok' "${timestamp_readable}" "${cn}" "${ou}" "${cf}" "${issuer}")"
+				msg_ver_details="$err [exit code $R]\n\nVerifica marcatura temporale:\n$timbro"
+			fi
+
+		else
+			if [ "${timestamp}" -ge "${notbefore_ts}" -a "${timestamp}" -le "${notafter_ts}" ]; then
+				msg_ver="$(_msg 'openssl:verifica:non_ok:ok')"
+				msg_ver_details="$err [exit code $R]"
+			else
+				msg_ver="$(_msg 'openssl:verifica:non_ok:non_ok')"
+				msg_ver_details="$err [exit code $R]\n\nVerifica marcatura temporale:\n$timbro"
+			fi
+		fi
+	fi
+	if [ -z "${msg_ver_details}" ]; then
+		if [ -z "$2" ]; then 
+			display "${msg_ver}" "$(_msg 'titolo:openssl:verify')"
+		else 
+			echo "${msg_ver}"
+		fi
+	else
+		if [ -z "$2" ]; then
+			err_detail "${msg_ver}" "${msg_ver_details}" "$(_msg 'titolo:openssl:verify')"
+		else
+			echo "${msg_ver};${msg_ver_details}"
+		fi
+	fi
+	return $R
+
+}
+cert() {
+	if [ ! -f "${CONF_DIR}/ca.pem" -o ! -s "${CONF_DIR}/ca.pem" ]; then
+		warn "$(_msg 'download_url:ca:mancante')"
+		return 1
+	fi
+	str=`openssl pkcs7 -print_certs -text -inform der -in "$1" 2>&1`
+	R=$?
+	if [ $R = "0" ]; then
+		display "$str" "$(_msg 'titolo:openssl:cert')"
+	else 
+		err_detail "$(_msg 'openssl:cert:errore')" "$str" "$(_msg 'titolo:openssl:cert')"
+	fi
+}
+
+debug_pkcs7() {
+	str=`openssl asn1parse -inform der -in "$1" 2>&1`
+	R=$?
+	if [ $R = "0" ]; then
+		display "$str" "$(_msg 'titolo:openssl:asn1parse')"
+	else
+		err_detail "$(_msg 'openssl:asn1parse:error')" "$str" "$(_msg 'titolo:openssl:asn1parse')"
+	fi
+}
+
+if [ -n "${CONF_DIR}" -a ! -d "${CONF_DIR}" ]; then
+	mkdir -p "${CONF_DIR}"
+fi
+if [ -f "${CONF_DIR}/p7m_config" ]; then
+	# in questo file puoi modificare i messaggi ed aggiungere lingue, i vari programmi da utilizzare ed altro
+	source "${CONF_DIR}/p7m_config"
+fi
+
+L=$(get_lang_message)
+DWN=$(find_command ${DWL_ORDER})
+OPEN=$(find_command ${OPEN_ORDER})
+XDIALOG=$(find_command ${DIALOG_ORDER})
+
+while getopts ":pvcdxg" arg; do
+  case $arg in
+      p)
+	 op='p'
+      ;;
+      v)
+          op='v'
+      ;;
+      c)
+          op='c'
+      ;;
+      d)
+	  op='d'
+      ;;
+      x)
+	  op='x'
+      ;;
+      g)
+	  out='g'  
+      ;;
+  esac
+done
+if [ "$op" == 'p' ]; then
+	getcert
+	R=$?
+	exit $R
+fi
+shift $(($OPTIND - 1))
+file=$@
+if [ -z "$file" ]; then
+	err "$(_msg 'errore:file:ext')" "$(_msg 'titolo:errore')"
+  exit 1
+fi
+if [ ! -f "$file" ]; then
+	err "$(_msg 'errore:file:non_esiste') ($file)" "$(_msg 'titolo:errore')"
+  exit 2
+fi
+orig_path=$(dirname "$file")
+b1=$(basename "$file")
+b2=$(basename "$file" .p7m)
+if [ "$b1" = "$b2" ]; then
+	warn "$(_msg 'errore:file:ext')" "$(_msg 'titolo:attenzione')"
+  exit 3
+fi
+if [ ! `which openssl` ]; then
+	err "$(_msg 'eseguibile:openssl:non_trovato')" "$(_msg 'it:titolo:openssl')"
+  exit 4
+fi
+myfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
+# check if in pem format to convert in der
+openssl pkcs7 -print_certs -text -noout -inform pem -in "$1" >/dev/null 2>&1
+if [ $? == 0 ]; then
+  # convert from pem to der
+  openssl pkcs7 -outform der -in "$file" -out "$myfile"
+else 
+  myfile="$file"
+fi
+getnewcert
+if [ "$op" == 'v' ]; then
+	verify "$myfile"
+	R=$?
+	exit $R
+elif [ "$op" == 'c' ]; then
+	cert "$myfile"
+	R=$?
+	exit $R
+elif [ "$op" == 'd' ]; then
+	debug_pkcs7 "$myfile"
+	R=$?
+	exit $R
+fi
+newfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
+if [ ! -f "${CONF_DIR}/ca.pem" -o ! -s "${CONF_DIR}/ca.pem" ]; then
+	err=`openssl smime -verify -noverify -in "$myfile" -inform DER -out "$newfile" 2>&1`
+	if [ $? != "0" ]; then
+		err_detail "$(_msg 'openssl:estrazione:errore') ($file)" "$err" "$(_msg 'titolo:openssl')"
+	  exit 5
+	fi
+else
+	errv=$(verify "$myfile" 1)
+	codev=$?
+	if [ $codev != "0" ]; then
+		errv1=${errv/;*/}
+		errv1_detail=${errv/*;/}
+		if [ $codev = "2" ]; then
+			# Errore nel formato del file: inutile continuare
+			err_detail "$errv1" "$errv1_detail" "$(_msg 'titolo:openssl')"
+			exit 5
+		else 
+			warn_yesno "$errv1\n\n$(_msg 'openssl:verifica:errore:continuo')" "$errv1_detail" "$(_msg 'titolo:openssl')"
+			if [ $? != 0 ]; then
+				exit 5
+			fi
+		fi
+	fi
+	err=`openssl smime -verify -noverify -in "$myfile" -inform DER -out "$newfile" 2>&1`
+	code=$?
+	if [ $code != "0" ]; then
+		err_detail "$(_msg 'openssl:estrazione:errore') ($file exit code $code)" "$err" "$(_msg 'titolo:openssl')"
+		exit 5
+	fi
+
+fi
+t=`file -b --mime-type "$newfile"`
+p7m_attach=${newfile}
+nf="${b2}"
+if [ -n "$t" -a -f "${MIMETYPES}" ]; then
+	read -a exts <<<$(grep -E "$t" "${MIMETYPES}")
+	if [ -n "${exts[1]}" ]; then
+		b3=$(basename "$b2" ".${exts[1]}")
+		if [ "$b3" = "$b2" ]; then
+			nf="${b2}.${exts[1]}"
+		else
+			nf="${b2}"
+		fi
+		p7m_attach=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX-${nf}")
+		mv "${newfile}" "${p7m_attach}"
+	fi
+fi
+if [ "$op" == 'x' ]; then
+	if [ -e "${orig_path}/${nf}" ]; then
+		warn_yesno "$(_msg 'file:sovrascivere') ${orig_path}/${nf}" "" "$(_msg 'titolo:p7m')"
+		if [ $? != 0 ]; then
+			exit 2
+		fi
+	fi
+	err=$( mv "${p7m_attach}" "${orig_path}/${nf}" )
+	if [ $? != "0" ]; then
+		err "$(_msg 'file:diritti:scrittura') ${orig_path}\n$(_msg 'file:diritti:scrittura:alternativa') ${p7m_attach}"
+	else
+		notify "$(_msg 'openssl:estrazione:percorso') '${orig_path}/${nf}'\n[tipo: $t]"
+	fi
+elif [ -n "${OPEN}" ]; then
+	# display "$(_msg 'eseguibile:open_file:non_trovato') ${p7m_attach}"
+	${OPEN} "${p7m_attach}"
+	exit 0
+else 
+	display "$(_msg 'eseguibile:open_file:non_trovato')  '${p7m_attach}'\n[tipo: $t]"
+	exit 0
+fi
+
+# ########################################################################
+#      Copyright (c) 2018 Enio Carboni - Italy
+#
+#      This file is part of p7m.
+#
+#    p7m is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    p7m is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with p7m.  If not, see <http://www.gnu.org/licenses/>.
+# ########################################################################

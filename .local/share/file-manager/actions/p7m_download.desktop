@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Action
+ToolbarLabel[it]=Download CA (CNIPA)
+Name[it]=Download CA (CNIPA)
+Profiles=profile-zero;
+
+Icon[it]=qp7m
+
+[X-Action-Profile profile-zero]
+Exec=p7m -g -p %f
+Name[it]=Profilo predefinito

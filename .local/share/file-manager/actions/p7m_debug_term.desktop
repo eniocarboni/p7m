@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Action
+ToolbarLabel[it]=Debug .p7m (esperti, xterm)
+Name[it]=Debug .p7m (esperti, xterm)
+Profiles=profile-zero;
+Icon[it]=qp7m
+
+[X-Action-Profile profile-zero]
+Exec=xterm -e bash -c "p7m -d %f|less"
+Name[it]=Profilo predefinito

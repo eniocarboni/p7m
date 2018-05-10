@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Action
+ToolbarLabel[it]=Debug .p7m (esperti)
+Name[it]=Debug .p7m (esperti)
+Profiles=profile-zero;
+
+Icon[it]=qp7m
+
+[X-Action-Profile profile-zero]
+Exec=p7m -g -d %f
+Name[it]=Profilo predefinito

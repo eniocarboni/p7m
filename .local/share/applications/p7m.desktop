@@ -1,0 +1,18 @@
+[Desktop Entry]
+Comment[it_IT]=
+Comment=Apre il documento nel file p7m
+Exec=p7m -g %f
+Icon=qp7m
+MimeType=application/pkcs7-mime;
+Name[it_IT]=p7m
+Name=p7m
+NoDisplay=true
+Path=
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+X-DBUS-ServiceName=
+X-DBUS-StartupType=
+X-KDE-SubstituteUID=false
+X-KDE-Username=

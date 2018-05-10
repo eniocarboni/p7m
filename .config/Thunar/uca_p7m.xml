@@ -1,0 +1,84 @@
+<?xml encoding="UTF-8" version="1.0"?>
+<actions>
+<action>
+	<icon>Terminal</icon>
+	<name>Apri un terminale qui</name>
+	<unique-id>1523651622513951-1</unique-id>
+	<command>exo-open --working-directory %f --launch TerminalEmulator</command>
+	<description>Esempio di azione personalizzata</description>
+	<patterns>*</patterns>
+	<directories/>
+</action>
+<action>
+	<icon>filefind</icon>
+	<name>Trova in questa cartella</name>
+	<unique-id>1523651622513999-2</unique-id>
+	<command>catfish --path=%f</command>
+	<description>Cerca file all&apos;interno di questa cartella</description>
+	<patterns>*</patterns>
+	<directories/>
+</action>
+<action>
+	<icon>qp7m_mini</icon>
+	<name>p7m: apri il documento</name>
+	<unique-id>1525084768787572-1</unique-id>
+	<command>$HOME/bin/p7m -g %f</command>
+	<description></description>
+	<patterns>*.p7m</patterns>
+	<other-files/>
+</action>
+<action>
+	<icon>qp7m_mini</icon>
+	<name>p7m: verifica la firma</name>
+	<unique-id>1525084768787572-2</unique-id>
+	<command>$HOME/bin/p7m -g -v %f</command>
+	<description></description>
+	<patterns>*.p7m</patterns>
+	<other-files/>
+</action>
+<action>
+	<icon>qp7m_mini</icon>
+	<name>p7m: visualizza i certificati</name>
+	<unique-id>1525084768787572-3</unique-id>
+	<command>$HOME/bin/p7m -g -c %f</command>
+	<description></description>
+	<patterns>*.p7m</patterns>
+	<other-files/>
+</action>
+<action>
+	<icon>qp7m_mini</icon>
+	<name>p7m: scarica i certificatori dal CNIPA (CA)</name>
+	<unique-id>1525084768787572-4</unique-id>
+	<command>$HOME/bin/p7m -g -p %f</command>
+	<description></description>
+	<patterns>*.p7m</patterns>
+	<other-files/>
+</action>
+<action>
+	<icon>qp7m_mini</icon>
+	<name>p7m: Estrai l'allegato</name>
+	<unique-id>1525084768787572-4-5</unique-id>
+	<command>$HOME/bin/p7m -g -x %f</command>
+	<description></description>
+	<patterns>*.p7m</patterns>
+	<other-files/>
+</action>
+<action>
+	<icon>qp7m_mini</icon>
+	<name>p7m: ispeziona il contenuto (esperti)</name>
+	<unique-id>1525084768787572-5</unique-id>
+	<command>$HOME/bin/p7m -g -d %f</command>
+	<description></description>
+	<patterns>*.p7m</patterns>
+	<other-files/>
+</action>
+<action>
+	<icon>qp7m_mini</icon>
+	<name>p7m: ispeziona il contenuto (esperti, xterm)</name>
+	<unique-id>1525084768787572-6</unique-id>
+	<command>xterm -e bash -c "$HOME/bin/p7m -d %f|less"</command>
+	<description></description>
+	<patterns>*.p7m</patterns>
+	<other-files/>
+</action>
+</actions>

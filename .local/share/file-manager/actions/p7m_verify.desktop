@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Action
+ToolbarLabel[it]=Verifica firma
+Name[it]=Verifica firma
+Profiles=profile-zero;
+
+Icon[it]=qp7m
+
+[X-Action-Profile profile-zero]
+Exec=p7m -g -v %f
+Name[it]=Profilo predefinito

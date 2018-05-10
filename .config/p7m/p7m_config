@@ -1,0 +1,21 @@
+# ----------------------------------------
+# File di configurazione di p7m
+# Vedi https://github.com/eniocarboni/p7m
+# ----------------------------------------
+
+# DWL_ORDER: Ordine da scegliere per l'utilizzo del programma per fare il download di file
+DWL_ORDER="wget curl GET"
+# DIALOG_ORDER: Ordine da scegliere per il programma grafico di dialogo
+DIALOG_ORDER="kdialog zenity xmessage"
+# OPEN_ORDER: Ordine da scegliere per il programma che apre il file associato al default mime type
+OPEN_ORDER="xdg-open gvfs-open gnome-open"
+# CA_OLD_TIME_SEC: Numero di secondi oltre i quali verra' scaricato nuovamente il CA dal sito del CNIPA (def 15gg)
+CA_OLD_TIME_SEC=1296000
+# XML_CERTS: url del cnipa per il portafogli dei certificati di validità in xml
+XML_CERTS='https://applicazioni.cnipa.gov.it/TSL/_IT_TSL_signed.xml'
+# ROTATE_NUMBER: Numero di rotazioni da mantenere per alcuni file di configurazione (compreso il CA del CNIPA)
+ROTATE_NUMBER=10
+# MIMETYPES: Percorso al file mime.types (def. /etc/mime.types)
+MIMETYPES=/etc/mime.types
+
+

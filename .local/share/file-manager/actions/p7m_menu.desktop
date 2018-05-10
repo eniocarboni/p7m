@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Menu
+Name[it]=p7m
+ItemsList=p7m_open;p7m_verify;p7m_certs;p7m_download;p7m_extract;p7m_debug;p7m_debug_term;
+Tooltip[it]=Gestione file .p7m
+Icon[it]=qp7m
+MimeTypes=application/pkcs7-mime;

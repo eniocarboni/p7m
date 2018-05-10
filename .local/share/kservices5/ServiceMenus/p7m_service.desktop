@@ -1,0 +1,53 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=KonqPopupMenu/Plugin
+MimeType=application/pkcs7-mime;
+Actions=seeattach;verify;certs;download;extract;debug;debug2
+X-KDE-Priority=TopLevel
+X-KDE-StartupNotify=false
+X-KDE-Submenu=p7m
+X-KDE-Submenu[it]=p7m
+
+[Desktop Action verify]
+Name=Sign Verify
+Name[it]=Verifica la firma
+Icon=qp7m
+Exec=p7m -g -v %f
+
+[Desktop Action certs]
+Name=View Certs
+Name[it]=Visualizza i certificati
+Icon=qp7m
+Exec=filename=%f; p7m -g -c "%f"
+
+[Desktop Action download]
+Name=Download the CA from CNIPA
+Name[it]=Scarica i certificatori dal CNIPA (CA)
+Icon=qp7m
+Exec=filename=%f; p7m -g -p "%f"
+
+[Desktop Action seeattach]
+Name=Open document
+Name[it]=Apri il documento
+Icon=qp7m
+Exec=filename=%f; p7m -g "%f"
+
+[Desktop Action extract]
+Name=Estrai l'allegato
+Name[it]=Estrai l'allegato
+Icon=qp7m
+Exec=filename=%f; p7m -g -x "%f"
+
+[Desktop Action debug]
+Name=Debug the DER file (expert)
+Name[it]=Ispeziona il contenuto (esperti)
+Icon=qp7m
+Exec=filename=%f; p7m -g -d "%f"
+
+[Desktop Action debug2]
+Name=Debug the DER file (expert), xterm
+Name[it]=Ispeziona il contenuto (esperti, xterm)
+Icon=qp7m
+Exec=xterm -e bash -c "p7m -d %f|less"
+
+
