@@ -1,8 +1,8 @@
 ## P7M
-**p7m** è uno script per la gestione dei file con [firma digitale nel formato CADES](https://quoll.it/firma-digitale-p7m-come-estrarre-il-contenuto/).
+**p7m** è un p7m viewer e uno script per la gestione dei file con [firma digitale nel formato CADES](https://quoll.it/firma-digitale-p7m-come-estrarre-il-contenuto/).
 Permette di:
 * verificare e visualizzare la firma digitale, 
-* estrarre l'allegato e visualizzarlo,
+* estrarre l'allegato e visualizzarlo (p7m viewer),
 * scaricare il i certificati dei certificatori (CA dal [CNIPA](http://archivio.cnipa.gov.it/site/it-IT/))
 * ispezionare il contenuto del file (debug per esperti)
 
@@ -33,7 +33,7 @@ Questo script funziona sotto linux sia in modalità testuale che grafica (usare 
   Come finestre di dialogo vengono prese in considerazione i comandi **kdialog** se presente, altrimenti **zenity** ed infine **xmessage**.
   L'ordine di ricerca può essere modificato tramite file di configurazione impostando la variabile *DIALOG_ORDER*
 
-Se nessuno dei parametri ==-v, -c o -d== viene utilizzato **p7m** controlla e verifica la firma ed estrae l'allegato visualizzandolo con il programma associato dal suo mime-type.
+Se nessuno dei parametri ==-v, -c o -d== viene utilizzato **p7m** controlla e verifica la firma ed estrae l'allegato visualizzandolo con il programma associato dal suo mime-type (p7m viewer).
 Per aprire il programma associato ad uno specifico mime type viene utilizzato il comando **xdg-open** se presente, altrimenti **gvfs-open** ed infine **gnome-open**.
 Se nessuno dei precedenti comandi esiste viene visualizzato un messaggio con l'indicazione del percorso esatto del file estratto.
 
