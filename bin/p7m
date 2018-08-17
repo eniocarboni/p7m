@@ -545,6 +545,7 @@ if [ -n "$t" -a -f "${MIMETYPES}" ]; then
 		else
 			nf="${b2}"
 		fi
+		nf=$(echo ${nf} | tr '[ A-Z]' '[_a-z]')
 		p7m_attach=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX-${nf}")
 		mv "${newfile}" "${p7m_attach}"
 	fi
