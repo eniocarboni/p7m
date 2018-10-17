@@ -1,4 +1,9 @@
 ## P7M
+
+[![GPL License](https://img.shields.io/badge/license-GPL-blue.svg)](https://www.gnu.org/licenses/)
+[![Release v 0.2](https://img.shields.io/badge/release-v.0.2-green.svg)](https://github.com/eniocarboni/p7m)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/EnioCarboni/5)
+
 **p7m** è un p7m viewer e uno script per la gestione dei file con [firma digitale nel formato CADES](https://quoll.it/firma-digitale-p7m-come-estrarre-il-contenuto/).
 Permette di:
 * verificare e visualizzare la firma digitale, 
@@ -80,10 +85,8 @@ Se non sono state create in precedenza azioni personalizzate di Thunar si può s
   mv .config/Thunar/uca_p7m.xml .config/Thunar/uca.xml
   xdg-mime default p7m.desktop application/pkcs7-mime
 ```
-## Offerta / finanziamento
-Se il programma ti piace e lo utilizzi potresti [offrirmi un caffè](https://www.paypal.me/EnioCarboni/1.5) 
 ## COPYRIGHT
-```
+
       Copyright (c) 2018 Enio Carboni - Italy
 
       This file is part of p7m.
@@ -92,7 +95,7 @@ p7m is free software: you can redistribute it and/or modify it under the terms o
 
 p7m is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License    along with p7m.  If not, see <http://www.gnu.org/licenses/>.
-```
+You should have received a copy of the GNU General Public License along with p7m.  If not, see <http://www.gnu.org/licenses/>.
+
 
 

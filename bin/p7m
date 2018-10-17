@@ -4,6 +4,7 @@
 # p7m: script per la gestione dei file con firma digitale nel formato CADES.
 # Vedi https://github.com/eniocarboni/p7m
 # Author: Enio Carboni
+# Version: 0.2
 # ----------------------------------------
 
 # DWL_ORDER: Order to choose for download program
@@ -21,6 +22,13 @@ ROTATE_NUMBER=10
 # MIMETYPES: path of file mime.types
 MIMETYPES=/etc/mime.types
 CONF_DIR=${HOME}/.config/p7m
+DOWN_RIGHT_ARROW="\u21b3"
+# Terminal color
+RED='\033[0;31m'
+BWhite='\033[1;37m'
+BPurple='\033[1;35m'
+BRed='\033[1;31m'
+NC='\033[0m' # No Color
 
 # ------------------------------------------------------------------------
 
@@ -45,12 +53,21 @@ msg[it:errore:file:non_esiste]="Non esiste il file. Controllare meglio"
 msg[it:errore:file:conf_dir]="Impossibile creare la directory .p7m nella tua HOME"
 msg[it:openssl:estrazione:errore]="estrazione file terminata con errore"
 msg[it:openssl:verifica:errore:formato]="Errore nel formato del file"
-msg[it:openssl:verifica:ok:ok]="Verifica certificato riuscita (riferimento temporale entro la validità del certificato)\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
-msg[it:openssl:verifica:non_ok:ok]="Verifica certificato non riuscita ma riferimento temporale entro la validità del certificato"
-msg[it:openssl:verifica:non_ok_scaduto:ok]="Verifica certificato non riuscita (certificato scaduto) ma riferimento temporale entro la validità del certificato\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
-msg[it:openssl:verifica:non_ok:non_ok]="Verifica certificato non riuscita e riferimento temporale non valido al di fuori della validità del certificato"
-msg[it:openssl:verifica:non_ok_scaduto:non_ok]="Verifica certificato non riuscita (certificato scaduto) e riferimento temporale non valido al di fuori della validità del certificato\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
-msg[it:openssl:verifica:errore:continuo]="Provo comunque ad estrarre il contenuto?"
+msg[it:openssl:verifica:title:ok]="Verifica firme avvenuta con successo"
+msg[it:openssl:verifica:title:non_ok]="Verifica firme terminata con errore"
+msg[it:openssl:verifica:ok:ok]="**Firmatario: %s**\n   Data e ora di firma: %p1\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   Validità certificato: %p5 - %p6\n"
+msg[it:openssl:verifica:non_ok:ok]="**Firmatario: %s**\n   Data e ora di firma: %p1\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   ** Certificato non valido: %p5 - %p6\n"
+msg[it:openssl:verifica:non_ok_scaduto:ok]="**Firmatario: %s**\n   Data e ora di firma: %p1\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   ***Certificato scaduto: %p5 - %p6***\n"
+msg[it:openssl:verifica:non_ok_scaduto:non_ok]="**Firmatario: %s**\n   *** Errore in data e ora di firma: %p1***\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   *** Certificato scaduto: %p5 - %p6***\n"
+msg[it:openssl:verifica:non_ok:non_ok]="**Firmatario: %s**\n   *** Errore in data e ora di firma: %p1***\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   *** Errore nel certificato validità: %p5 - %p6***\n"
+
+
+#msg[it:openssl:verifica:ok:ok]="Verifica certificato riuscita (riferimento temporale entro la validità del certificato)\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
+#msg[it:openssl:verifica:non_ok:ok]="Verifica certificato non riuscita ma riferimento temporale entro la validità del certificato"
+#msg[it:openssl:verifica:non_ok_scaduto:ok]="Verifica certificato non riuscita (certificato scaduto) ma riferimento temporale entro la validità del certificato\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
+#msg[it:openssl:verifica:non_ok:non_ok]="Verifica certificato non riuscita e riferimento temporale non valido al di fuori della validità del certificato"
+#msg[it:openssl:verifica:non_ok_scaduto:non_ok]="Verifica certificato non riuscita (certificato scaduto) e riferimento temporale non valido al di fuori della validità del certificato\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
+msg[it:openssl:verifica:errore:continuo]="Verifica documento e firme errata! Provo comunque ad estrarre il contenuto?"
 msg[it:openssl:cert:errore]="Impossibile estrarre il certificato"
 msg[it:openssl:cert:validita]="Validità certificato: %s"
 msg[it:openssl:asn1parse:error]="Impossibile estrarre informazioni dal file"
@@ -129,14 +146,17 @@ _msg() {
 		value="${msg[it:$1]}"
 	fi
 	if [ -n "$2" ]; then
-		value=$(echo $value | sed "s/\%s/$2/g")
-		value=$(echo $value | sed "s/\%p1/$3/g")
-		value=$(echo $value | sed "s/\%p2/$4/g")
-		value=$(echo $value | sed "s/\%p3/$5/g")
-		value=$(echo $value | sed "s/\%p4/$6/g")
-		value=$(echo $value | sed "s/\%p5/$7/g")
+		value=$(echo "$value" | sed "s/\%s/$2/g")
+		value=$(echo "$value" | sed "s/\%p1/$3/g")
+		value=$(echo "$value" | sed "s/\%p2/$4/g")
+		value=$(echo "$value" | sed "s/\%p3/$5/g")
+		value=$(echo "$value" | sed "s/\%p4/$6/g")
+		value=$(echo "$value" | sed "s/\%p5/$7/g")
+		value=$(echo "$value" | sed "s/\%p6/$8/g")
+		value=$(echo "$value" | sed "s/\%p7/$9/g")
+		value=$(echo "$value" | sed "s/\%p8/$10/g")
 	fi
-	echo -e $value
+	echo "$value"
 }
 rotate_file() {
 	if [ -z "$1" -o ! -f "$1" ]; then 
@@ -162,6 +182,25 @@ find_command() {
 	done
 	echo $com
 }
+
+# del_oldtmp_file()
+#  Parametri di IN: nomi dei file da cancellare
+#
+# Cancellazione file temporanei creati in precedenza
+# Prima della cancellazione faccio dei controlli di sicurezza:
+#   - non devo cancellare il file originale
+#   - non devo cancellare il file finale estratto
+#   - il file deve esistere
+#   - il file deve essere del tipo temporaneo creato da questo script (deve matchare "p7m_")
+del_oldtmp_file() {
+	for f in $@; do
+		if [ "$f" != "$file" -a "$f" != "${p7m_attach}" -a -e "$f" -a "$f" != "${f/p7m_}" ]; then
+			rm -f "$f"
+		fi
+	done
+	return 0
+}
+
 download() {
 	rotate_file "${CONF_DIR}/.dwn.log"
 	touch "${CONF_DIR}/.dwn.log"
@@ -179,18 +218,26 @@ download() {
 	return $?
 }
 call_kdialog() {
+	t='<html>'$(echo -e  "$2" | sed -e 's/ /\&nbsp;/g' -e 's/\*\*\*\(.*\)\*\*\*/<font color="red">\1<\/font>/g' -e 's/\*\*\(.*\)\*\*/<b>\1<\/b>/g' -e 's/$/<br>/g')'</html>'
 	if [ $1 = 'text' ]; then
-		kdialog --title "$3" --msgbox "$2" 2>/dev/null
+		if [ ${#2} -gt 40960 ]; then
+			log_file=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
+			echo -e  "$2" >$log_file
+			kdialog --title "$3" --textbox "$log_file" --geometry 800x600 2>/dev/null
+			rm -f $log_file
+		else
+			kdialog --title "$3" --msgbox "$t" 2>/dev/null
+		fi
 	elif [ $1 = 'warn' ]; then
-		kdialog --title "$3" --sorry "$2" 2>/dev/null
+		kdialog --title "$3" --sorry "$t" 2>/dev/null
 	elif [ $1 = 'err' ]; then
-		kdialog --title "$3" --error "$2" 2>/dev/null
+		kdialog --title "$3" --error "$t" 2>/dev/null
 	elif [ $1 = 'err_detail' ]; then
-		kdialog --title "$4" --detailederror "$2" "$3" 2>/dev/null
+		kdialog --title "$4" --detailederror "$t" "$3" 2>/dev/null
 	elif [ $1 = 'notify' ]; then
-		kdialog --title "$3" --passivepopup "$2" 5 2>/dev/null
+		kdialog --title "$3" --passivepopup "$1" 5 2>/dev/null
 	elif [ $1 = 'warn_yesno' ]; then
-		kdialog --title "$4" --warningyesno "$2\n\n$3" 2>/dev/null
+		kdialog --title "$4" --warningyesno "$t\n\n$3" 2>/dev/null
 	fi
 }
 call_zenity() {
@@ -227,46 +274,70 @@ call_xmessage() {
 		echo -e "$2\n\n$3"
 	fi
 }
+call_echo() {
+	# controllo se l'output va nel terminale o in una pipe
+	if [ -t 1 ]; then
+		t=$(echo -e "$2" | sed -e "s/\*\*\*\(.*\)\*\*\*/\\\033[0;31m\1\\\033[0m/g" -e "s/\*\*\(.*\)\*\*/\\\033[1;37m\1\\\033[0m/g")
+		if [ -n "$3" ]; then 
+			if [ $1 = 'text' ]; then
+				echo -e "${BWhite}$3${NC}"
+			elif [ $1 = 'warn' ]; then
+				echo -e "${BPurple}$3${NC}"
+			else 
+				echo -e "${BRed}$3${NC}"
+			fi
+
+		fi
+		echo -e "$t"
+		
+	else
+		if [ -n "$1" ]; then 
+			echo -e "$3"
+		fi
+		echo -e  "$2"
+	fi
+}
 display() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "text" "$@"
 	else
-		echo -e "$1"
+		call_echo "text" "$@"
 	fi
 }
 notify() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "notify" "$@"
 	else
-		echo -e "$1"
+
+		call_echo "text" "$@"
 	fi
 }
 warn() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "warn" "$@"
 	else
-		echo -e "$1"
+		call_echo "warn" "$@"
 	fi
 }
 err() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "err" "$@"
 	else
-		echo -e "$1"
+		call_echo "err" "$@"
 	fi
 }
 err_detail() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "err_detail" "$@"
 	else
-		echo -e "$1\n\n-------$(_msg 'titolo:dettagli')-------\n$2\n----------------------\n"
+		call_echo "err" "$1\n\n-------$(_msg 'titolo:dettagli')-------\n$2\n----------------------\n"
 	fi
 }
 warn_yesno() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "warn_yesno" "$@"
 	else
-		echo -e "$1\n\n$2"
+		call_echo "warn" "$1\n\n$2"
 	fi
 }
 	
@@ -315,6 +386,51 @@ fi
 return 0
 }
 
+# ##################################################### #
+# is_pkcs7():
+#  Verifica se il file p7m passato come parametro è un vero p7m
+# Parametro di in: $1 = percorso del file da verificare
+# Uscita: 0 se verifica OK altrimenti 1
+# ##################################################### #
+is_pkcs7() {
+	# check if in pem format
+	openssl pkcs7 -print_certs -text -noout -inform pem -in "$1" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		echo "0"
+		return 0
+	fi
+	# check if in der format
+	openssl pkcs7 -print_certs -text -noout -inform der -in "$1" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		echo "0"
+		return 0
+	fi
+	echo "1"
+	return 1
+}
+
+# ##################################################### #
+# from_pem_to_der():
+#  Converte un file p7m da PEM a DER
+# Parametro di in: $1 = percorso del file da convertire
+# Uscita: percorso del file in formato DER
+# ##################################################### #
+from_pem_to_der() {
+	local file_pem=$1
+	local der=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
+	# check if in pem format to convert in der
+	openssl pkcs7 -print_certs -text -noout -inform pem -in "$file_pem" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		# convert from pem to der
+		openssl pkcs7 -outform der -in "$file_pem" -out "$der"
+	else
+		del_oldtmp_file "$der"
+		der="$file_pem"
+	fi
+	echo "$der"
+	return 0
+}
+
 verify() {
 	if [ ! -f "${CONF_DIR}/ca.pem" -o ! -s "${CONF_DIR}/ca.pem" ]; then
 		warn "$(_msg 'download_url:ca:mancante')"
@@ -330,92 +446,135 @@ verify() {
 		fi
 		return $R
 	fi
-	timestamp_orig=`openssl asn1parse -inform DER -in "$1"|sed  -n -e '/:signingTime/,/UTCTIME/p'| grep UTCTIME | awk '{print $7}'| sed 's/[:Z]//g'`
-	if [ ${#timestamp_orig} -ne 12 ]; then
-		timestamp_msg="$(_msg 'openssl:verifica:timestamp:mancante')"
-       	else 
-		timestamp_yymmgg="$(echo $timestamp_orig | sed -e 's/^\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)/\1-\2-\3 \4:\5:\6/') UTC"
-		timestamp=$(date --date="${timestamp_yymmgg}" "+%s")
-		timestamp_readable=$(date --date="${timestamp_yymmgg}" "+%Y-%m-%d %H:%M:%S %Z")
-	fi
-	cert=$(openssl pkcs7 -print_certs -text -inform der -in "$1" 2>&1)
-	cn=$(echo "$cert"| grep 'Subject:'|sed -e 's/^.*CN=//' -e 's/[\/,].*$//' 2>&1)
-	cf=$(echo "$cert"| grep 'Subject:'|sed -e 's/^.*serialNumber=//' -e 's/[\/,].*$//' -e 's/^.*://' 2>&1)
-	ou=$(echo "$cert"| grep 'Subject:'|sed -e 's/^.*O=//' -e 's/[\/,].*$//' -e 's/^.*://' 2>&1)
-	issuer=$(echo "$cert"| grep 'Issuer:'|sed -e 's/^.*CN=//' -e 's/[\/,].*$//' 2>&1)
+	# in timestamps_array ci sono:
+        #	negli elementi 0,2,4, ecc. (elementi pari) il serial del certificato di chi ha firmato
+	#	negli elementi 1,3,5, ecc. (elementi dispari) l'UTCTIME in formato normalizzato con il locale impostato
+	declare -a timestamps_array
+	declare -a certs_orig_array
+	declare -A serial_timestamps
+	declare -A serial_certs
+	declare -A utctime_hash
+	OLD_IFS=$IFS
+	IFS=$'\n' 
+	timestamps_array=($(openssl pkcs7 -print -text -inform der -in "$1" | sed -n '/issuer_and_serial:/,/UTCTIME:/p'| grep -E ' serial:|UTCTIME:'| sed -e 's/^ *serial: *//' -e 's/^ *UTCTIME: *//' ))
+	certs_orig_array=($(openssl pkcs7 -print -text -inform der -in "$1" | sed -n '/cert_info:/,/issuerUID:/p'| grep -E ' serialNumber:|issuer:|notBefore:|notAfter:|subject:' | grep -E ' serialNumber:|issuer:|notBefore:|notAfter:|subject:' | sed 's/^ *\(serialNumber:\|issuer:\|notBefore:\|notAfter:\|subject:\) *//'))
+	IFS=$OLD_IFS
+	for (( i=0; i<${#timestamps_array[*]}; i=$(($i+2)) )); do
+          serial_timestamps[${timestamps_array[$i]}]=$i
+	  utctime=${timestamps_array[$(($i+1))]}
+	  utctime=$(date --date="${utctime}" "+%s")
+	  utctime_hash[$utctime]=${timestamps_array[$i]}
+	done
+	# in certs_orig_array ci sono:
+	#	negli elementi 0,5,10, ecc. (elementi 0 + 5*n) il serial del certificato
+	#	negli elementi 1,6,11, ecc. (elementi 1 + 5*n) l'issue
+	#	negli elementi 2,7,12, ecc. (elementi 2 + 5*n) il notBefore (data di partenza del certificato)
+	#	negli elementi 3,8,13, ecc. (elementi 3 + 5*n) il notAfter (data di scadenza del certificato)
+	#	negli elementi 4,9,14, ecc. (elementi 4 + 5*n) il subject (Nome, cognome, CF, ecc)
+	for (( i=0; i<${#certs_orig_array[*]}; i=$(($i+5)) )); do
+		serial_certs[${certs_orig_array[$i]}]=$i
+	done
+	# Debug for certs and timestamps
+	# echo -e "\ntimestamps_array:\n"
+	# echo "${timestamps_array[*]}"
+	# echo -e "\ncerts_orig_array:\n"
+	# echo "${certs_orig_array[*]}"
+	# echo -e "\nserial_timestamps:\n"
+	# for x in "${!serial_timestamps[@]}"; do echo "$x = ${serial_timestamps[$x]}"; done
+	# echo -e "\nserial_certs:\n"
+	# for x in "${!serial_certs[@]}"; do echo "$x = ${serial_certs[$x]}"; done
+	# echo -e "\nutctime_hash:\n"
+	# for x in "${!utctime_hash[@]}"; do echo "$x = ${utctime_hash[$x]}"; done
+	# echo "${!utctime_hash[@]}" | sed -e 's/ /\n/g' |sort -n 
+	# exit
+	# Debug end: for certs and timestamps
 
-	
-	notbefore=$(echo "$cert"| grep 'Not Before\s*:' | sed -e 's/^.*Not Before\s*:\s*//')
-	notafter=$(echo "$cert"| grep -E 'Not After\s*:' | sed -e 's/^.*Not After\s*:\s*//')
-	notbefore_ts=$(date --date="${notbefore}" "+%s")
-	notafter_ts=$(date --date="${notafter}" "+%s")
-	notbefore_readable=$(date --date="${notbefore}" "+%Y-%m-%d %H:%M:%S %Z")
-        notafter_readable=$(date --date="${notafter}" "+%Y-%m-%d %H:%M:%S %Z")
+	# verify_res: indica se 0 che le firme e i loro timestamp sono corretti; se >0 c'e' un errore
+	verify_res=0
+	declare -a verify_msg
 	now=$(date "+%s")
-	timbro="  "$(_msg 'openssl:asn1parse:timestamp' "${timestamp_readable}")"\n  "$(_msg 'openssl:cert:validita' "${notbefore_readable} - ${notafter_readable}")
-        msg_ver=""
-	msg_ver_details=""
-	if [ $R = "0" ]; then
-		msg_ver="$(_msg 'openssl:verifica:ok:ok' "${timestamp_readable}" "${cn}" "${ou}" "${cf}" "${issuer}")"
+	if [ ${#timestamps_array[*]} -eq 0 ]; then 
+		timestamp_msg="$(_msg 'openssl:verifica:timestamp:mancante')"
+		verify_res=8
 	else
-		if [ "${now}" -lt "${notbefore_ts}" -o "${now}" -gt "${notafter_ts}" ]; then
-			if [ "${timestamp}" -ge "${notbefore_ts}" -a "${timestamp}" -le "${notafter_ts}" ]; then
-				msg_ver="$(_msg 'openssl:verifica:non_ok_scaduto:ok' "${timestamp_readable}" "${cn}" "${ou}" "${cf}" "${issuer}")"
-				msg_ver_details="$err [exit code $R]"
+		idx=-1
+		for utc in $(echo "${!utctime_hash[@]}" | sed -e 's/ /\n/g' | sort -n); do
+			sn=${utctime_hash[$utc]}
+			idx=$(($idx + 1 ))
+			idx_ts=${serial_timestamps[$sn]}
+			idx_cert=${serial_certs[$sn]}
+			timestamp_readable=${timestamps_array[$(( $idx_ts + 1 ))]}
+			timestamp=$(date --date="${timestamp_readable}" "+%s")
+			issuer=${certs_orig_array[$(( $idx_cert + 1 ))]}
+			notbefore=${certs_orig_array[$(( $idx_cert + 2 ))]}
+			notafter=${certs_orig_array[$(( $idx_cert + 3 ))]}
+			subject=${certs_orig_array[$(( $idx_cert + 4 ))]}
+			cn=$(echo $subject |sed -e 's/^.*CN=//' -e 's/[\/,].*$//' 2>&1)
+			cf=$(echo $subject |sed -e 's/^.*serialNumber=//' -e 's/[\/,].*$//' -e 's/^.*://' 2>&1)
+			ou="non presente"
+			if [ "$subject" != "${subject/O=}" ]; then
+				ou=$(echo $subject |sed -e 's/^.*O=//' -e 's/[\/,].*$//' -e 's/^.*://' 2>&1)
+			fi
+			issuer_cn=$(echo $issuer|sed -e 's/^.*CN=//' -e 's/[\/,].*$//' 2>&1)
+			notbefore_ts=$(date --date="${notbefore}" "+%s")
+			notafter_ts=$(date --date="${notafter}" "+%s")
+
+			# Debug for summury data
+			# echo -e "serialNumber: $sn"
+			# echo -e "\t idx_ts=$idx_ts, idx_cert=$idx_cert"
+			# echo -e "\t timestamp_readable=$timestamp_readable, timestamp=$timestamp"
+			# echo -e "\t issuer=$issuer"
+			# echo -e "\t notBefore=$notbefore (ts=$notbefore_ts), notAfter=$notafter (ts=$notafter_ts)"
+			# echo -e "\t subject=$subject"
+			# echo -e "\t --------"
+			# echo -e "\t cn=$cn, cf=$cf, ou=$ou"
+			# echo -e "\t issuer_cn=$issuer_cn"
+			# Debug end for summury data
+			verify_res=0
+			if [ $R = "0" ]; then
+				verify_msg[$idx]="$(_msg 'openssl:verifica:ok:ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
+			
+			elif [ "${now}" -lt "${notbefore_ts}" -o "${now}" -gt "${notafter_ts}" ]; then
+				if [ "${timestamp}" -ge "${notbefore_ts}" -a "${timestamp}" -le "${notafter_ts}" ]; then
+					verify_msg[$idx]="$(_msg 'openssl:verifica:non_ok_scaduto:ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
+				else
+					verify_msg[$idx]="$(_msg 'openssl:verifica:non_ok_scaduto:non_ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
+					verify_res=1
+				fi
 			else
-				msg_ver="$(_msg 'openssl:verifica:non_ok_scaduto:non_ok' "${timestamp_readable}" "${cn}" "${ou}" "${cf}" "${issuer}")"
-				msg_ver_details="$err [exit code $R]\n\nVerifica marcatura temporale:\n$timbro"
+				if [ "${timestamp}" -ge "${notbefore_ts}" -a "${timestamp}" -le "${notafter_ts}" ]; then
+					verify_msg[$idx]="$(_msg 'openssl:verifica:non_ok:ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
+				else
+					verify_msg[$idx]="$(_msg 'openssl:verifica:non_ok:non_ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
+					verify_res=2
+				fi
 			fi
 
-		else
-			if [ "${timestamp}" -ge "${notbefore_ts}" -a "${timestamp}" -le "${notafter_ts}" ]; then
-				msg_ver="$(_msg 'openssl:verifica:non_ok:ok')"
-				msg_ver_details="$err [exit code $R]"
-			else
-				msg_ver="$(_msg 'openssl:verifica:non_ok:non_ok')"
-				msg_ver_details="$err [exit code $R]\n\nVerifica marcatura temporale:\n$timbro"
-			fi
-		fi
+		done
 	fi
-	if [ -z "${msg_ver_details}" ]; then
-		if [ -z "$2" ]; then 
-			display "${msg_ver}" "$(_msg 'titolo:openssl:verify')"
-		else 
-			echo "${msg_ver}"
-		fi
-	else
-		if [ -z "$2" ]; then
-			err_detail "${msg_ver}" "${msg_ver_details}" "$(_msg 'titolo:openssl:verify')"
-		else
-			echo "${msg_ver};${msg_ver_details}"
-		fi
-	fi
-	return $R
-
+	echo "${verify_msg[*]}"
+	return $verify_res
 }
+
 cert() {
 	if [ ! -f "${CONF_DIR}/ca.pem" -o ! -s "${CONF_DIR}/ca.pem" ]; then
-		warn "$(_msg 'download_url:ca:mancante')"
+		echo "$(_msg 'download_url:ca:mancante')"
 		return 1
 	fi
 	str=`openssl pkcs7 -print_certs -text -inform der -in "$1" 2>&1`
 	R=$?
-	if [ $R = "0" ]; then
-		display "$str" "$(_msg 'titolo:openssl:cert')"
-	else 
-		err_detail "$(_msg 'openssl:cert:errore')" "$str" "$(_msg 'titolo:openssl:cert')"
-	fi
+	echo "$str"
+	return $R
 }
 
 debug_pkcs7() {
 	str=`openssl asn1parse -inform der -in "$1" 2>&1`
 	R=$?
-	if [ $R = "0" ]; then
-		display "$str" "$(_msg 'titolo:openssl:asn1parse')"
-	else
-		err_detail "$(_msg 'openssl:asn1parse:error')" "$str" "$(_msg 'titolo:openssl:asn1parse')"
-	fi
+	echo "$str"
+	return $R
 }
+
+### START MAIN ###
 
 if [ -n "${CONF_DIR}" -a ! -d "${CONF_DIR}" ]; then
 	mkdir -p "${CONF_DIR}"
@@ -478,61 +637,90 @@ if [ ! `which openssl` ]; then
 	err "$(_msg 'eseguibile:openssl:non_trovato')" "$(_msg 'it:titolo:openssl')"
   exit 4
 fi
-myfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
-# check if in pem format to convert in der
-openssl pkcs7 -print_certs -text -noout -inform pem -in "$1" >/dev/null 2>&1
-if [ $? == 0 ]; then
-  # convert from pem to der
-  openssl pkcs7 -outform der -in "$file" -out "$myfile"
-else 
-  myfile="$file"
-fi
-getnewcert
-if [ "$op" == 'v' ]; then
-	verify "$myfile"
-	R=$?
-	exit $R
-elif [ "$op" == 'c' ]; then
-	cert "$myfile"
-	R=$?
-	exit $R
-elif [ "$op" == 'd' ]; then
-	debug_pkcs7 "$myfile"
-	R=$?
-	exit $R
-fi
-newfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
-if [ ! -f "${CONF_DIR}/ca.pem" -o ! -s "${CONF_DIR}/ca.pem" ]; then
-	err=`openssl smime -verify -noverify -in "$myfile" -inform DER -out "$newfile" 2>&1`
-	if [ $? != "0" ]; then
-		err_detail "$(_msg 'openssl:estrazione:errore') ($file)" "$err" "$(_msg 'titolo:openssl')"
-	  exit 5
+
+declare -a out_continue_array
+declare -a unlink_files
+checkfile="$file"
+# p7m_attach: [Variabile  globale] Nome del file estratta dal .p7m
+p7m_attach=""
+level=-1
+op_continue=1
+op_continue_ret=0
+op_title=''
+while [ $op_continue_ret -eq 0 -a $(is_pkcs7 "$checkfile") -eq 0 ]; do
+	level=$(( $level + 1 ))
+	# Se necessario converto il file da PEM a DER
+	myfile=$(from_pem_to_der "$checkfile")
+	unlink_files+=("$myfile")
+	
+	if [ $level -eq 0 ]; then 
+		getnewcert
 	fi
-else
-	errv=$(verify "$myfile" 1)
-	codev=$?
-	if [ $codev != "0" ]; then
-		errv1=${errv/;*/}
-		errv1_detail=${errv/*;/}
-		if [ $codev = "2" ]; then
-			# Errore nel formato del file: inutile continuare
-			err_detail "$errv1" "$errv1_detail" "$(_msg 'titolo:openssl')"
-			exit 5
-		else 
+	if [ "$op" == 'v' ]; then
+		op_continue=0
+		out_continue_array[$level]=$(verify "$myfile")
+		op_continue_ret=$?
+		if [ $op_continue_ret -eq 0 ]; then
+			if [ -z "$op_title" ]; then
+				op_title="openssl:verifica:title:ok"
+			fi
+		else
+			op_title="openssl:verifica:title:non_ok"
+		fi
+	elif [ "$op" == 'c' ]; then
+		op_continue=0
+		out_continue_array[$level]=$(cert "$myfile")
+		op_continue_ret=$?
+		op_title="titolo:openssl:cert"
+	elif [ "$op" == 'd' ]; then
+		op_continue=0
+		out_continue_array[$level]=$(debug_pkcs7 "$myfile")
+		op_continue_ret=$?
+		op_title="titolo:openssl:asn1parse"
+	elif [ -f "${CONF_DIR}/ca.pem" -a -s "${CONF_DIR}/ca.pem" ]; then
+		errv=$(verify "$myfile")
+		codev=$?
+		if [ $codev != "0" ]; then
 			warn_yesno "$errv1\n\n$(_msg 'openssl:verifica:errore:continuo')" "$errv1_detail" "$(_msg 'titolo:openssl')"
 			if [ $? != 0 ]; then
+				del_oldtmp_file "${unlink_files[*]}"
 				exit 5
 			fi
 		fi
 	fi
-	err=`openssl smime -verify -noverify -in "$myfile" -inform DER -out "$newfile" 2>&1`
+	checkfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
+	err=`openssl smime -verify -noverify -in "$myfile" -inform DER -out "$checkfile" 2>&1`
 	code=$?
+	unlink_files+=("$checkfile")
 	if [ $code != "0" ]; then
 		err_detail "$(_msg 'openssl:estrazione:errore') ($file exit code $code)" "$err" "$(_msg 'titolo:openssl')"
+		del_oldtmp_file "${unlink_files[*]}"
 		exit 5
 	fi
+done
+if [ $op_continue -eq 0 ]; then
+	declare -a out_msg
+	indent=''
+	for (( i=$(( ${#out_continue_array[*]} -1 )); i>=0; i=$(($i-1)) )); do
+		level=$(( ${#out_continue_array[*]} -1 - $i ))
+		if [ $level -gt 0 ]; then 
+			indent="$indent    "
+			out_msg[$level]=$(echo -e "\n${DOWN_RIGHT_ARROW} ** livello $level **\n\n${out_continue_array[$i]}" | sed "s/^/$indent/g")"\n"
+		elif [ ${#out_continue_array[*]} -gt 1 ]; then
+			out_msg[$level]=$(echo "\n ** livello $level **\n\n${out_continue_array[$i]}")
+		else
+			out_msg[$level]=$(echo "\n${out_continue_array[$i]}")
 
+		fi
+	done
+	display "${out_msg[*]}" "$(_msg ${op_title})"
+	del_oldtmp_file "${unlink_files[*]}"
+	exit $op_continue_ret;
 fi
+if [ "$checkfile" = "$file" ]; then
+	exit 2
+fi
+newfile=$checkfile
 t=`file -b --mime-type "$newfile"`
 p7m_attach=${newfile}
 nf="${b2}"
@@ -550,6 +738,8 @@ if [ -n "$t" -a -f "${MIMETYPES}" ]; then
 		mv "${newfile}" "${p7m_attach}"
 	fi
 fi
+# Cancellazione file temporanei
+del_oldtmp_file "${unlink_files[*]}"
 if [ "$op" == 'x' ]; then
 	if [ -e "${orig_path}/${nf}" ]; then
 		warn_yesno "$(_msg 'file:sovrascivere') ${orig_path}/${nf}" "" "$(_msg 'titolo:p7m')"
