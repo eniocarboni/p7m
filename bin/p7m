@@ -16,7 +16,9 @@ OPEN_ORDER="xdg-open gvfs-open gnome-open"
 # CA_OLD_TIME_SEC: after that second the CA file will be download
 CA_OLD_TIME_SEC=1296000
 # XML_CERTS: url of cnipa xml certs
-XML_CERTS='https://applicazioni.cnipa.gov.it/TSL/_IT_TSL_signed.xml'
+#XML_CERTS='https://applicazioni.cnipa.gov.it/TSL/_IT_TSL_signed.xml'
+# See https://www.agid.gov.it/it/piattaforme/firma-elettronica-qualificata/certificati
+XML_CERTS='https://eidas.agid.gov.it/TL/TSL-IT.xml'
 # ROTATE_NUMBER: number of rotations (for same files)
 ROTATE_NUMBER=10
 # MIMETYPES: path of file mime.types
