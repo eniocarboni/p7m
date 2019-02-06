@@ -51,6 +51,7 @@ msg[it:titolo:attenzione]="Attenzione"
 msg[it:titolo:dettagli]="Dettagli"
 
 msg[it:errore:file:ext]="Bisogna passare un file con estensione .p7m come parametro"
+msg[it:errore:file:ext:bad]="Formato del file p7m non riconosciuto."
 msg[it:errore:file:non_esiste]="Non esiste il file. Controllare meglio"
 msg[it:errore:file:conf_dir]="Impossibile creare la directory .p7m nella tua HOME"
 msg[it:openssl:estrazione:errore]="estrazione file terminata con errore"
@@ -100,6 +101,7 @@ msg[en:titolo:attenzione]="Warning"
 msg[en:titolo:dettagli]=" Details"
 
 msg[en:errore:file:ext]="You must pass a .p7m file as a parameter"
+msg[en:errore:file:ext:bad]="Bad file p7m format."
 msg[en:errore:file:non_esiste]="There is no file. Check better"
 msg[en:errore:file:conf_dir]="Unable to create the .p7m directory in your HOME"
 msg[en:openssl:estrazione:errore]="File extraction ended with error"
@@ -389,23 +391,49 @@ return 0
 }
 
 # ##################################################### #
+# from_base64_to_p7m():
+# Converte un file p7m encodato in base64 in p7m standard
+# Parametro di in: $1 = percorso del file da convertire
+# Uscita: percorso del file p7m non encodato
+# ##################################################### #
+from_base64_to_p7m() {
+	local file_pem=$1
+	local newp7m=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
+	# check if in base64 format to convert in original p7m
+	openssl base64 -A -d -in "$file_pem" -out "$newp7m" 2>&1
+	if [ -s "$newp7m" ]; then
+		echo "$newp7m"
+	else
+		del_oldtmp_file "$newp7m"
+		echo "$file_pem"
+	fi
+	return 0
+}
+
+
+# ##################################################### #
 # is_pkcs7():
 #  Verifica se il file p7m passato come parametro è un vero p7m
 # Parametro di in: $1 = percorso del file da verificare
 # Uscita: 0 se verifica OK altrimenti 1
 # ##################################################### #
 is_pkcs7() {
+	local file_test=$1
+	local real_file_test=$(from_base64_to_p7m "$file_test")
 	# check if in pem format
-	openssl pkcs7 -print_certs -text -noout -inform pem -in "$1" >/dev/null 2>&1
+	openssl pkcs7 -print_certs -text -noout -inform pem -in "$real_file_test" >/dev/null 2>&1
 	if [ $? == 0 ]; then
 		echo "0"
 		return 0
 	fi
 	# check if in der format
-	openssl pkcs7 -print_certs -text -noout -inform der -in "$1" >/dev/null 2>&1
+	openssl pkcs7 -print_certs -text -noout -inform der -in "$real_file_test" >/dev/null 2>&1
 	if [ $? == 0 ]; then
 		echo "0"
 		return 0
+	fi
+	if [ "$real_file_test" != "$file_test" ]; then
+		del_oldtmp_file "$real_file_test"
 	fi
 	echo "1"
 	return 1
@@ -650,10 +678,17 @@ level=-1
 op_continue=1
 op_continue_ret=0
 op_title=''
+if [ $(is_pkcs7 "$checkfile") -ne 0 ]; then 
+	op_continue=0
+	out_continue_array[0]=$(_msg 'errore:file:ext:bad')
+fi
 while [ $op_continue_ret -eq 0 -a $(is_pkcs7 "$checkfile") -eq 0 ]; do
 	level=$(( $level + 1 ))
+	# Se necessario converto da base64
+	myfile_uu=$(from_base64_to_p7m "$checkfile")
+	unlink_files+=("$myfile_uu")
 	# Se necessario converto il file da PEM a DER
-	myfile=$(from_pem_to_der "$checkfile")
+	myfile=$(from_pem_to_der "$myfile_uu")
 	unlink_files+=("$myfile")
 	
 	if [ $level -eq 0 ]; then 
