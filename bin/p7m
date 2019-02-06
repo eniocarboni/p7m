@@ -629,8 +629,9 @@ if [ ! -f "$file" ]; then
   exit 2
 fi
 orig_path=$(dirname "$file")
-b1=$(basename "$file")
-b2=$(basename "$file" .p7m)
+name_file=$(echo ${file} | tr '[ A-Z]' '[_a-z]')
+b1=$(basename "$name_file")
+b2=$(basename "$name_file" .p7m)
 if [ "$b1" = "$b2" ]; then
 	warn "$(_msg 'errore:file:ext')" "$(_msg 'titolo:attenzione')"
   exit 3
