@@ -763,6 +763,9 @@ if [ "$checkfile" = "$file" ]; then
 fi
 newfile=$checkfile
 t=`file -b --mime-type "$newfile"`
+if [ "$t" = 'text/xml' ]; then
+	t='text/xml|application/xml';
+fi
 p7m_attach=${newfile}
 nf="${b2}"
 if [ -n "$t" -a -f "${MIMETYPES}" ]; then
