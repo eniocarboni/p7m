@@ -720,7 +720,7 @@ while [ $op_continue_ret -eq 0 -a $(is_pkcs7 "$checkfile") -eq 0 ]; do
 		errv=$(verify "$myfile")
 		codev=$?
 		if [ $codev != "0" ]; then
-			warn_yesno "$errv1\n\n$(_msg 'openssl:verifica:errore:continuo')" "$errv1_detail" "$(_msg 'titolo:openssl')"
+			warn_yesno "$(_msg 'openssl:verifica:errore:continuo')" "" "$(_msg 'titolo:openssl')"
 			if [ $? != 0 ]; then
 				del_oldtmp_file "${unlink_files[*]}"
 				exit 5
@@ -732,9 +732,11 @@ while [ $op_continue_ret -eq 0 -a $(is_pkcs7 "$checkfile") -eq 0 ]; do
 	code=$?
 	unlink_files+=("$checkfile")
 	if [ $code != "0" ]; then
-		err_detail "$(_msg 'openssl:estrazione:errore') ($file exit code $code)" "$err" "$(_msg 'titolo:openssl')"
-		del_oldtmp_file "${unlink_files[*]}"
-		exit 5
+		warn_yesno "$(_msg 'openssl:verifica:errore:continuo')" "$err" "$(_msg 'titolo:openssl')"
+		if [ $? != 0 ]; then
+			del_oldtmp_file "${unlink_files[*]}"
+			exit 5
+		fi
 	fi
 done
 if [ $op_continue -eq 0 ]; then
