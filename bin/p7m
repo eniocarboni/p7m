@@ -365,7 +365,8 @@ getcert() {
   notify "$(_msg 'download_url:ca:attendi')" "$(_msg 'titolo:cert')"
   rotate_file ${CONF_DIR}/cnipa_signed.xml
   download "${XML_CERTS}" "${CONF_DIR}/cnipa_signed.xml"
-  for i in `grep '<X509Certificate' ${CONF_DIR}/cnipa_signed.xml`; do 
+  # cnipa_signed.xml now is only one line long so we add e return value before start tag and after tag (X509Certificate)
+  for i in `sed -e 's/<X509Certificate/\n<X509Certificate/g' -e s'#</X509Certificate>#</X509Certificate>\n#g' ${CONF_DIR}/cnipa_signed.xml | grep '<X509Certificate'`; do
 	  echo -e "-----BEGIN CERTIFICATE-----"
 	  echo $i| sed -e 's/<\/*X509Certificate>//g'| openssl base64 -d -A| openssl base64
 	  echo -e "-----END CERTIFICATE-----"
