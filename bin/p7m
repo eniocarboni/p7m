@@ -294,16 +294,20 @@ call_echo() {
 
 		fi
 		echo -e -n "$t "
-		read -s -n 1 -p "[s/n] " answer
-		echo
-		answer=$(echo ${answer} | tr '[A-Z]' '[a-z]')
-		if [ -z "$answer" ]; then
-			answer=" "
-		fi
-		if [ "$answer" = 's' -o "$answer" = 'y' ]; then
-			return 0
+		if [ $1 = 'warn_yesno' ]; then
+			read -s -n 1 -p "[s/n] " answer
+			echo
+			answer=$(echo ${answer} | tr '[A-Z]' '[a-z]')
+			if [ -z "$answer" ]; then
+				answer=" "
+			fi
+			if [ "$answer" = 's' -o "$answer" = 'y' ]; then
+				return 0
+			else
+				return 1
+			fi
 		else
-			return 1
+			echo
 		fi
 
 		
