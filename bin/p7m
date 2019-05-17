@@ -31,6 +31,14 @@ BWhite='\033[1;37m'
 BPurple='\033[1;35m'
 BRed='\033[1;31m'
 NC='\033[0m' # No Color
+# Fattura Elettronica PA
+XSL_V11="fatturapa_v1.1.xsl"
+XSL_V11_URL="https://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.1/fatturapa_v1.1.xsl"
+XSL_V12="fatturapa_v1.2.1.xsl"
+XSL_V12_URL="https://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2.1/fatturaPA_v1.2.1.xsl"
+# XSL_OLD_TIME_SEC: after that second the xsl file will be download
+XSL_OLD_TIME_SEC=1296000
+
 
 # ------------------------------------------------------------------------
 
@@ -84,6 +92,7 @@ msg[it:download_url:ca:ok]="CA scaricato perfettamente in"
 msg[it:download_url:ca:non_ok]="Impossibile scaricare il CA in questo momento ... riprovare successivamente"
 msg[it:download_url:ca:mancante]="Manca il CA, scaricarlo con l'opzione -p"
 msg[it:download_url:ca:attendi]="Inizio scaricamento CA ... attendi un attimo"
+msg[it:download_url]="Inizio scaricamento %s ... attendi un attimo"
 msg[it:file:diritti:scrittura]="Impossibile scrivere in "
 msg[it:file:diritti:scrittura:alternativa]="Estratto comunque il file in "
 msg[it:file:sovrascivere]="Sovrascrivere il file "
@@ -125,6 +134,7 @@ msg[en:download_url:ca:ok]="CA downloaded perfectly into"
 msg[en:download_url:ca:non_ok]="Unable to download the 'CA' at this time ... try again later"
 msg[en:download_url:ca:mancante]="The CA is missing, download it with the -p option"
 msg[en:download_url:ca:attendi]="Starting download the CA ... wait, please"
+msg[en:download_url]="Starting download %s ... wait, please"
 msg[en:file:diritti:scrittura]="Unable to write in "
 msg[en:file:diritti:scrittura:alternativa]="Extract the file in "
 msg[en:file:sovrascivere]="Overwrite the file "
@@ -622,6 +632,63 @@ debug_pkcs7() {
 	return $R
 }
 
+# getxslenvs:
+# Description: Set the environment xsl_file and xsl_url based on version in $1
+getxslenvs() {
+	local version=$1
+	unset xsl_file xsl_url
+	if [ "$version" = "fpr12" ]; then
+		xsl_file=${XSL_V12}
+		xsl_url=${XSL_V12_URL}
+	elif [ "$version" = "1.1" ]; then
+		xsl_file=${XSL_V11}
+		xsl_url=${XSL_V11_URL}
+	fi
+}
+
+# copyxslfile:
+# Description: copy xsl file from CONF_DIR to $2 dir
+#              xsl file is based on $1 version of xml (inside fattura elettronica)
+#              the xsl will be downloaded if it does not exist or if it is too old based on CA_OLD_TIME_SEC
+copyxslfile() {
+	local version=$1
+	local dir=$2
+	local xsl
+	local url
+	local sec_old
+	local sec_now
+	getxslenvs $version
+	if [ ! -f "${CONF_DIR}/$xsl_file" -o ! -s "${CONF_DIR}/$xsl_file" ]; then
+		notify "$(_msg 'download_url' $xsl_file)" "$(_msg 'titolo:download')"
+		download "$xsl_url" "${CONF_DIR}/$xsl_file"
+	fi
+	if [ -e "${CONF_DIR}/$xsl_file" ]; then
+		cp "${CONF_DIR}/$xsl_file" "$dir/$xsl_file"
+	fi
+}
+
+# p7mplugin:
+# Description: check if $1 is a fattura elettronica file and copy the right xsl
+p7mplugin() {
+	local file=$1
+	local t=`file -b --mime-type "$file"`
+	local version
+	local testif_fatturaelettronica=$(grep -E '<FatturaElettronicaHeader' "$file")
+	local tag_FatturaElettronica=$(grep -E '<(.*:)?FatturaElettronica ' "$file")
+	local testif_xmlstylesheet=$(grep -E 'xml-stylesheet' $file)
+	if [ "$t" = 'text/xml' -a -n "$testif_fatturaelettronica" ]; then
+		# check if fattura elettronica
+		# found version and make all lowercase
+		version=$(echo $tag_FatturaElettronica | sed -e 's/^.*versione="\([^"]*\).*$/\1/' | tr '[A-Z]' '[a-z]')
+		getxslenvs $version
+		if [ -z "$testif_xmlstylesheet" ]; then
+			sed -i 's/\(<\([[:alnum:]]*:\)*FatturaElettronica \)/<\?xml-stylesheet type="text\/xsl" href="'$xsl_file'"\?>\1/' "$file"
+		fi
+		copyxslfile "$version" "$(dirname $file)"
+
+	fi
+}
+
 ### START MAIN ###
 
 if [ -n "${CONF_DIR}" -a ! -d "${CONF_DIR}" ]; then
@@ -816,6 +883,7 @@ if [ "$op" == 'x' ]; then
 	fi
 elif [ -n "${OPEN}" ]; then
 	# display "$(_msg 'eseguibile:open_file:non_trovato') ${p7m_attach}"
+        p7mplugin "${p7m_attach}"
 	${OPEN} "${p7m_attach}"
 	exit 0
 else 

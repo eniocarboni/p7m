@@ -10,6 +10,7 @@ Permette di:
 * estrarre l'allegato e visualizzarlo (p7m viewer),
 * scaricare il i certificati dei certificatori (CA dal [CNIPA](http://archivio.cnipa.gov.it/site/it-IT/))
 * ispezionare il contenuto del file (debug per esperti)
+* estrarre l'allegato di una fattura elettronica e visualizzare l'xml con il foglio di stile xsl di fatturapa [**new**]
 
 Questo script funziona sotto linux sia in modalità testuale che grafica (usare l'opzione -g)
 
@@ -91,11 +92,11 @@ Se non sono state create in precedenza azioni personalizzate di Thunar si può s
 
       This file is part of p7m.
 
-p7m is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+      p7m is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-p7m is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+      p7m is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with p7m.  If not, see <http://www.gnu.org/licenses/>.
+      You should have received a copy of the GNU General Public License along with p7m.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
