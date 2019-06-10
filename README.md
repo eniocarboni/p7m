@@ -16,24 +16,26 @@ Questo script funziona sotto linux sia in modalità testuale che grafica (usare 
 
 ## SINOSSI
 ```
-  p7m [-g] [-v | -c | -d] file.p7m
-  p7m [-g] -p 
+  p7m [-x] [-g] [-h] <file.p7m> # Per estrarre il contenuto
+  p7m -v [-g] [-h] <file.p7m>   # Per verificare il p7m
+  p7m -c [-g] [-h] <file.p7m>   # Per i certificati
+  p7m -d [-g] [-h] <file.p7m>   # Per il debug (esperti)
+  p7m -p [-h]                   # Per scaricare la nuova CA
 ```
 
 **dove**
-* -p
-  serve per scaricare la versione aggiornata del portafoglio dei [CA](https://it.wikipedia.org/wiki/Certificate_authority) registrati al [CNIPA](http://archivio.cnipa.gov.it/site/it-IT/).
-  Il portafoglio originale in xml verrà salvato in *$HOME/.p7m/cnipa_signed.xml* mentre la versione convertita e valida per openssl sarà salvata nel file *$HOME/.p7m/ca.pem*.
-  Il portafoglio servirà per verificare la firma nel file *file.p7m*
-* -v
-  verifica se la firma è valida
-* -c
-  estrae e visualizza il certificato utente sia in forma testuale che in formato .pem
+* -h
+  visualizza questo messaggio;
 * -x
-  estrae l'allegato nella stessa cartella del file .p7m
+  estrae il file e non tenta di visualizzarlo;
+* -v
+  per verificare il p7m e la validita dei certificati e delle firme;
+* -c
+  visualizza i certificati di firma sia come testuali che come certificati binari (in formato PEM);
+* -p
+  per forzare lo scaricamento dei nuovi certificati [CA](https://it.wikipedia.org/wiki/Certificate_authority) registrati al [CNIPA] (https://eidas.agid.gov.it/TL/TSL-IT.xml);
 * -d
-  Visualizza il debug (solo per esperti) del contenuto del file *file.p7m*.
-  In tal modo si riesce a capir meglio se il file ha dei problemi e cosa contiene.
+  utili per il debug del p7m (per esperti);
 * -g
   con questo flag tutti i risultati vengono visualizzati su finestre grafiche altrimenti tutto finisce sullo standard output.
   Come finestre di dialogo vengono prese in considerazione i comandi **kdialog** se presente, altrimenti **zenity** ed infine **xmessage**.

@@ -96,6 +96,24 @@ msg[it:download_url]="Inizio scaricamento %s ... attendi un attimo"
 msg[it:file:diritti:scrittura]="Impossibile scrivere in "
 msg[it:file:diritti:scrittura:alternativa]="Estratto comunque il file in "
 msg[it:file:sovrascivere]="Sovrascrivere il file "
+msg[it:p7m:usage]="***%s***
+
+Usare:
+  **p7m** [-x] [-g] [-h] <file.p7m> # Per estrarre il contenuto
+  **p7m** -v [-g] [-h] <file.p7m>   # Per verificare il p7m
+  **p7m** -c [-g] [-h] <file.p7m>   # Per i certificati
+  **p7m** -d [-g] [-h] <file.p7m>   # Per il debug (esperti)
+  **p7m** -p [-h]                   # Per scaricare la nuova CA
+
+  Dove:
+    **-h**: visualizza questo messaggio;
+    **-x**: estrae il file e non tenta di visualizzarlo;
+    **-v**: per verificare il p7m e la validita dei certificati e delle firme;
+    **-c**: visualizza i certificati di firma sia come testuali che come certificati binari (in formato PEM);
+    **-p**: per forzare lo scaricamento dei nuovi certificati;
+    **-d**: utili per il debug del p7m (per esperti);
+    **-g**: prova ad utilizzare finestre grafiche invece di scrivere in console.
+"
 
 # en
 msg[en:titolo:p7m]="P7M"
@@ -138,6 +156,24 @@ msg[en:download_url]="Starting download %s ... wait, please"
 msg[en:file:diritti:scrittura]="Unable to write in "
 msg[en:file:diritti:scrittura:alternativa]="Extract the file in "
 msg[en:file:sovrascivere]="Overwrite the file "
+msg[en:p7m:usage]="***%s***
+
+Use:
+  **p7m** [-x] [-g] [-h] <file.p7m> # To extract content
+  **p7m** -v [-g] [-h] <file.p7m>   # To verify p7m
+  **p7m** -c [-g] [-h] <file.p7m>   # Certificates
+  **p7m** -d [-g] [-h] <file.p7m>   # To debug (expert only)
+  **p7m** -p [-h]                   # To download the CA
+
+  Where:
+    **-h**: Display this help;
+    **-x**: extract the content without display it;
+    **-v**: verify p7m, certificates and the signs;
+    **-c**: display certificates;
+    **-p**: force CA download;
+    **-d**: p7m debug (expert only);
+    **-g**: try using graphical windows instead of writing in console.
+"
 
 get_lang_message() {
 	L=${LANG%.*}
@@ -232,8 +268,9 @@ download() {
 	return $?
 }
 call_kdialog() {
-	t='<html>'$(echo -e  "$2" | sed -e 's/ /\&nbsp;/g' -e 's/\*\*\*\(.*\)\*\*\*/<font color="red">\1<\/font>/g' -e 's/\*\*\(.*\)\*\*/<b>\1<\/b>/g' -e 's/$/<br>/g')'</html>'
-	t2='<html>'$(echo -e  "$2<br><br><i>$3</i>" | sed -e 's/ /\&nbsp;/g' -e 's/\*\*\*\(.*\)\*\*\*/<font color="red">\1<\/font>/g' -e 's/\*\*\(.*\)\*\*/<b>\1<\/b>/g' -e 's/$/<br>/g')'</html>'
+	local t='<html>'$(echo -e  "$2" | sed -e 's/ /\&nbsp;/g' -e 's/\*\*\*\(.*\)\*\*\*/<font color="red">\1<\/font>/g' -e 's/\*\*\(.*\)\*\*/<b>\1<\/b>/g' -e 's/$/<br>/g')'</html>'
+	local t2='<html>'$(echo -e  "$2<br><br><i>$3</i>" | sed -e 's/ /\&nbsp;/g' -e 's/\*\*\*\(.*\)\*\*\*/<font color="red">\1<\/font>/g' -e 's/\*\*\(.*\)\*\*/<b>\1<\/b>/g' -e 's/$/<br>/g')'</html>'
+	local log_file
 	if [ $1 = 'text' ]; then
 		if [ ${#2} -gt 40960 ]; then
 			log_file=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
@@ -292,28 +329,36 @@ call_xmessage() {
 call_echo() {
 	# controllo se l'output va nel terminale o in una pipe
 	local ret=0
+	local t
+	local answer
 	if [ -t 1 ]; then
-		t=$(echo -e "${BRed}$4${NC}\n\n$2" | sed -e "s/\*\*\*\(.*\)\*\*\*/\\\033[0;31m\1\\\033[0m/g" -e "s/\*\*\(.*\)\*\*/\\\033[1;37m\1\\\033[0m/g")
+		t=$(echo -e "${BRed}$4${NC}$2" | sed -e "s/\*\*\*\(.*\)\*\*\*/\\\033[0;31m\1\\\033[0m/g" -e "s/\*\*\(.*\)\*\*/\\\033[1;37m\1\\\033[0m/g")
+		# Title
 		if [ -n "$3" ]; then 
 			if [ $1 = 'text' ]; then
-				echo -e "${BWhite}$3${NC}$t"
+				echo -e "${BWhite}$3${NC}"
 			elif [ $1 = 'warn' ]; then
-				echo -e "${BPurple}$3${NC}$t"
+				echo -e "${BPurple}$3${NC}"
 			elif [ $1 = 'warn_yesno' ]; then
-				read -s -n 1 -p "$t [s/n] " answer
-				answer=$(echo ${answer} | tr '[A-Z]' '[a-z]')
-				if [ -z "$answer" ]; then
-					answer=" "
-				fi
-				if [ "$answer" = 's' -o "$answer" = 'y' ]; then
-					ret=0
-				else
-					ret=1
-				fi
+				echo -e "${BPurple}$3${NC}"
 			else 
-				echo -e "${BRed}$3${NC}$t"
+				echo -e "${BRed}$3${NC}"
 			fi
-
+		fi
+		# Text
+		if [ $1 = 'warn_yesno' ]; then
+			read -s -n 1 -p "$t [s/n] " answer
+			answer=$(echo ${answer} | tr '[A-Z]' '[a-z]')
+			if [ -z "$answer" ]; then
+				answer=" "
+			fi
+			if [ "$answer" = 's' -o "$answer" = 'y' ]; then
+				ret=0
+			else
+				ret=1
+			fi
+		else 
+			echo -e "$t"
 		fi
 		echo
 	else
@@ -688,6 +733,14 @@ p7mplugin() {
 
 	fi
 }
+# getHelp
+# Description: Display help usage message for p7m
+# Input params: 
+#  $1: Message to prepend to the help usage message
+# Output: Display 'p7m:usage' phrase
+getHelp() {
+	display "$(_msg 'p7m:usage' "$1")"	
+}
 
 ### START MAIN ###
 
@@ -704,7 +757,7 @@ DWN=$(find_command ${DWL_ORDER})
 OPEN=$(find_command ${OPEN_ORDER})
 XDIALOG=$(find_command ${DIALOG_ORDER})
 
-while getopts ":pvcdxg" arg; do
+while getopts ":pvcdxgh" arg; do
   case $arg in
       p)
 	 op='p'
@@ -724,9 +777,16 @@ while getopts ":pvcdxg" arg; do
       g)
 	  out='g'  
       ;;
+      h)
+	  op='h'
+      ;;
   esac
 done
-if [ "$op" == 'p' ]; then
+if [ "$op" = 'h' ]; then
+	getHelp " "
+	exit 0
+fi
+if [ "$op" = 'p' ]; then
 	getcert
 	R=$?
 	exit $R
@@ -734,11 +794,11 @@ fi
 shift $(($OPTIND - 1))
 file=$@
 if [ -z "$file" ]; then
-	err "$(_msg 'errore:file:ext')" "$(_msg 'titolo:errore')"
+	getHelp "$(_msg 'errore:file:ext')"
   exit 1
 fi
 if [ ! -f "$file" ]; then
-	err "$(_msg 'errore:file:non_esiste') ($file)" "$(_msg 'titolo:errore')"
+	getHelp "$(_msg 'errore:file:non_esiste') ($file)"
   exit 2
 fi
 orig_path=$(dirname "$file")
@@ -746,10 +806,10 @@ name_file=$(echo ${file} | tr '[ A-Z]' '[_a-z]')
 b1=$(basename "$name_file")
 b2=$(basename "$name_file" .p7m)
 if [ "$b1" = "$b2" ]; then
-	warn "$(_msg 'errore:file:ext')" "$(_msg 'titolo:attenzione')"
+	getHelp "$(_msg 'errore:file:ext')"
   exit 3
 fi
-if [ ! `which openssl` ]; then
+if [ ! `which openssl 2>/dev/null` ]; then
 	err "$(_msg 'eseguibile:openssl:non_trovato')" "$(_msg 'it:titolo:openssl')"
   exit 4
 fi
