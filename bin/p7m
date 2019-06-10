@@ -189,7 +189,7 @@ rotate_file() {
 find_command() {
 	com=''
 	for c in "$@"; do
-		if [ `which ${c}` ]; then
+		if [ `which ${c} 2>/dev/null` ]; then
 			com=${c}
 			break
 		fi
@@ -291,42 +291,38 @@ call_xmessage() {
 }
 call_echo() {
 	# controllo se l'output va nel terminale o in una pipe
+	local ret=0
 	if [ -t 1 ]; then
 		t=$(echo -e "${BRed}$4${NC}\n\n$2" | sed -e "s/\*\*\*\(.*\)\*\*\*/\\\033[0;31m\1\\\033[0m/g" -e "s/\*\*\(.*\)\*\*/\\\033[1;37m\1\\\033[0m/g")
 		if [ -n "$3" ]; then 
 			if [ $1 = 'text' ]; then
-				echo -e "${BWhite}$3${NC}"
+				echo -e "${BWhite}$3${NC}$t"
 			elif [ $1 = 'warn' ]; then
-				echo -e "${BPurple}$3${NC}"
+				echo -e "${BPurple}$3${NC}$t"
+			elif [ $1 = 'warn_yesno' ]; then
+				read -s -n 1 -p "$t [s/n] " answer
+				answer=$(echo ${answer} | tr '[A-Z]' '[a-z]')
+				if [ -z "$answer" ]; then
+					answer=" "
+				fi
+				if [ "$answer" = 's' -o "$answer" = 'y' ]; then
+					ret=0
+				else
+					ret=1
+				fi
 			else 
-				echo -e "${BRed}$3${NC}"
+				echo -e "${BRed}$3${NC}$t"
 			fi
 
 		fi
-		echo -e -n "$t "
-		if [ $1 = 'warn_yesno' ]; then
-			read -s -n 1 -p "[s/n] " answer
-			echo
-			answer=$(echo ${answer} | tr '[A-Z]' '[a-z]')
-			if [ -z "$answer" ]; then
-				answer=" "
-			fi
-			if [ "$answer" = 's' -o "$answer" = 'y' ]; then
-				return 0
-			else
-				return 1
-			fi
-		else
-			echo
-		fi
-
-		
+		echo
 	else
 		if [ -n "$1" ]; then 
 			echo -e "$3"
 		fi
 		echo -e  "$2"
 	fi
+	return $ret
 }
 display() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
@@ -368,7 +364,7 @@ warn_yesno() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "warn_yesno" "$@"
 	else
-		call_echo "warn" "$1" "$3" "$2"
+		call_echo "warn_yesno" "$1" "$3" "$2"
 	fi
 }
 	
@@ -672,6 +668,9 @@ copyxslfile() {
 p7mplugin() {
 	local file=$1
 	local t=`file -b --mime-type "$file"`
+	if [ -n "$t" -a "$t" = 'application/xml' ]; then
+		t='text/xml'
+	fi
 	local version
 	local testif_fatturaelettronica=$(grep -E '<FatturaElettronicaHeader' "$file")
 	local tag_FatturaElettronica=$(grep -E '<(.*:)?FatturaElettronica ' "$file")
@@ -685,6 +684,7 @@ p7mplugin() {
 			sed -i 's/\(<\([[:alnum:]]*:\)*FatturaElettronica \)/<\?xml-stylesheet type="text\/xsl" href="'$xsl_file'"\?>\1/' "$file"
 		fi
 		copyxslfile "$version" "$(dirname $file)"
+		IS_FATTURA=1
 
 	fi
 }
@@ -868,6 +868,8 @@ if [ -n "$t" -a -f "${MIMETYPES}" ]; then
 fi
 # Cancellazione file temporanei
 del_oldtmp_file "${unlink_files[*]}"
+IS_FATTURA=""
+p7mplugin "${p7m_attach}"
 if [ "$op" == 'x' ]; then
 	if [ -e "${orig_path}/${nf}" ]; then
 		warn_yesno "$(_msg 'file:sovrascivere') ${orig_path}/${nf}" "" "$(_msg 'titolo:p7m')"
@@ -883,9 +885,10 @@ if [ "$op" == 'x' ]; then
 	fi
 elif [ -n "${OPEN}" ]; then
 	# display "$(_msg 'eseguibile:open_file:non_trovato') ${p7m_attach}"
-        p7mplugin "${p7m_attach}"
 	${OPEN} "${p7m_attach}"
 	exit 0
+elif [ -t 1 -a -n "$IS_FATTURA" ]; then
+	more "${p7m_attach}"
 else 
 	display "$(_msg 'eseguibile:open_file:non_trovato')  '${p7m_attach}'\n[tipo: $t]"
 	exit 0
