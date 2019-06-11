@@ -4,7 +4,7 @@
 # p7m: script per la gestione dei file con firma digitale nel formato CADES.
 # Vedi https://github.com/eniocarboni/p7m
 # Author: Enio Carboni
-# Version: 0.2
+# Version: 0.3
 # ----------------------------------------
 
 # DWL_ORDER: Order to choose for download program
