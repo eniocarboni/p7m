@@ -48,6 +48,7 @@ declare -A msg
 # LANG=C diventa LANG=it ed e' la lingua ufficiale
 # it
 msg[it:titolo:p7m]="P7M"
+msg[it:titolo:seleziona:p7m]="Seleziona un p7m"
 msg[it:titolo:openssl]="Openssl"
 msg[it:titolo:openssl:verify]="Openssl verifica firma"
 msg[it:titolo:openssl:cert]="Openssl Certificato"
@@ -117,6 +118,7 @@ Usare:
 
 # en
 msg[en:titolo:p7m]="P7M"
+msg[en:titolo:seleziona:p7m]="Select a p7m file"
 msg[en:titolo:openssl]="Openssl"
 msg[en:titolo:openssl:verify]="Openssl verifica firma"
 msg[en:titolo:openssl:cert]="Openssl Certificato"
@@ -733,6 +735,26 @@ p7mplugin() {
 
 	fi
 }
+
+#getP7mFile
+# Description: Open dialog box (if possible) to select a p7m file if not yet present
+# Input params:
+#  $1: file p7m if already present
+# Output: the p7m selected or $1
+# Return value: 0
+getP7mFile() {
+	local file=''
+	if [ -n "$1" -o "$out" != 'g' ]; then
+		file="$1"
+	elif [ "$XDIALOG" = 'kdialog' ]; then
+		file=$(kdialog --getopenfilename --title="$(_msg 'titolo:seleziona:p7m')" $PWD 'P7M file (*.p7m)')
+	elif [ "$XDIALOG" = 'zenity' ]; then
+		file=$(zenity --file-selection --title="$(_msg 'titolo:seleziona:p7m')" --file-filter='*.p7m')
+	fi
+	echo "$file"
+	return 0
+}
+
 # getHelp
 # Description: Display help usage message for p7m
 # Input params: 
@@ -793,6 +815,7 @@ if [ "$op" = 'p' ]; then
 fi
 shift $(($OPTIND - 1))
 file=$@
+file=$(getP7mFile "$file")
 if [ -z "$file" ]; then
 	getHelp "$(_msg 'errore:file:ext')"
   exit 1

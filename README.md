@@ -16,6 +16,7 @@ Questo script funziona sotto linux sia in modalità testuale che grafica (usare 
 
 ## SINOSSI
 ```
+  p7m -g                        # Permettere di selezionare un file p7m per estrarne il contenuto [**New**]
   p7m [-x] [-g] [-h] <file.p7m> # Per estrarre il contenuto
   p7m -v [-g] [-h] <file.p7m>   # Per verificare il p7m
   p7m -c [-g] [-h] <file.p7m>   # Per i certificati
