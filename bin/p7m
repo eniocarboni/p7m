@@ -1,11 +1,16 @@
 #! /bin/bash
 
 # ----------------------------------------
-# p7m: script per la gestione dei file con firma digitale nel formato CADES.
-# Vedi https://github.com/eniocarboni/p7m
+# p7m: script for the management of files with digital signature in the CADES format.
+# See: https://github.com/eniocarboni/p7m
 # Author: Enio Carboni
 # Version: 0.3
 # ----------------------------------------
+
+# ---------------------------------------
+# Main Globa variables:
+# You can modify these variables but I recommend doing this using the configuration file $CONF_DIR/p7m_config
+# ---------------------------------------
 
 # DWL_ORDER: Order to choose for download program
 DWL_ORDER="wget curl GET"
@@ -38,15 +43,13 @@ XSL_V12="fatturapa_v1.2.1.xsl"
 XSL_V12_URL="https://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2.1/fatturaPA_v1.2.1.xsl"
 # XSL_OLD_TIME_SEC: after that second the xsl file will be download
 XSL_OLD_TIME_SEC=1296000
-
-
 # ------------------------------------------------------------------------
 
 declare -A msg
-# msg lang (def it, en)
-# Prendo solo i primi 2 caratteri della lingua (es it, en).
-# LANG=C diventa LANG=it ed e' la lingua ufficiale
-# it
+# msg: multilang phrases (it [default], en)
+# Consider only the first 2 characters of the language (example it, en)
+
+# it phrases
 msg[it:titolo:p7m]="P7M"
 msg[it:titolo:seleziona:p7m]="Seleziona un p7m"
 msg[it:titolo:openssl]="Openssl"
@@ -72,19 +75,12 @@ msg[it:openssl:verifica:non_ok:ok]="**Firmatario: %s**\n   Data e ora di firma: 
 msg[it:openssl:verifica:non_ok_scaduto:ok]="**Firmatario: %s**\n   Data e ora di firma: %p1\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   ***Certificato scaduto: %p5 - %p6***\n"
 msg[it:openssl:verifica:non_ok_scaduto:non_ok]="**Firmatario: %s**\n   *** Errore in data e ora di firma: %p1***\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   *** Certificato scaduto: %p5 - %p6***\n"
 msg[it:openssl:verifica:non_ok:non_ok]="**Firmatario: %s**\n   *** Errore in data e ora di firma: %p1***\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   *** Errore nel certificato validità: %p5 - %p6***\n"
-
-
-#msg[it:openssl:verifica:ok:ok]="Verifica certificato riuscita (riferimento temporale entro la validità del certificato)\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
-#msg[it:openssl:verifica:non_ok:ok]="Verifica certificato non riuscita ma riferimento temporale entro la validità del certificato"
-#msg[it:openssl:verifica:non_ok_scaduto:ok]="Verifica certificato non riuscita (certificato scaduto) ma riferimento temporale entro la validità del certificato\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
-#msg[it:openssl:verifica:non_ok:non_ok]="Verifica certificato non riuscita e riferimento temporale non valido al di fuori della validità del certificato"
-#msg[it:openssl:verifica:non_ok_scaduto:non_ok]="Verifica certificato non riuscita (certificato scaduto) e riferimento temporale non valido al di fuori della validità del certificato\n\nLa firma è stata fatta nel %s da %p1\nEnte: %p2\nCF: %p3\nCertificatore: %p4"
 msg[it:openssl:verifica:errore:continuo]="Verifica documento e/o firme errate! Provo comunque ad estrarre il contenuto?"
+msg[it:openssl:verifica:timestamp:mancante]="Manca il timestamps nel p7m"
 msg[it:openssl:cert:errore]="Impossibile estrarre il certificato"
 msg[it:openssl:cert:validita]="Validità certificato: %s"
 msg[it:openssl:asn1parse:error]="Impossibile estrarre informazioni dal file"
 msg[it:openssl:asn1parse:timestamp]="Riferimento temporale: %s"
-
 msg[it:openssl:estrazione:percorso]="Estratto il file in "
 msg[it:eseguibile:openssl:non_trovato]="Devi installare 'openssl' prima di poter usare questo programma"
 msg[it:eseguibile:open_file:non_trovato]="Non trovo nessuno dei comandi:\n ${OPEN_ORDER}\nNon so come aprire il file estratto"
@@ -116,7 +112,7 @@ Usare:
     **-g**: prova ad utilizzare finestre grafiche invece di scrivere in console.
 "
 
-# en
+# en phrases
 msg[en:titolo:p7m]="P7M"
 msg[en:titolo:seleziona:p7m]="Select a p7m file"
 msg[en:titolo:openssl]="Openssl"
@@ -128,24 +124,23 @@ msg[en:titolo:cert]="Cert"
 msg[en:titolo:errore]="Error"
 msg[en:titolo:attenzione]="Warning"
 msg[en:titolo:dettagli]=" Details"
-
 msg[en:errore:file:ext]="You must pass a .p7m file as a parameter"
 msg[en:errore:file:ext:bad]="Bad file p7m format."
 msg[en:errore:file:non_esiste]="There is no file. Check better"
 msg[en:errore:file:conf_dir]="Unable to create the .p7m directory in your HOME"
 msg[en:openssl:estrazione:errore]="File extraction ended with error"
-msg[en:openssl:verifica:errore:formato]="Errore nel formato del file"
+msg[en:openssl:verifica:errore:formato]="File format error"
 msg[en:openssl:verifica:ok:ok]="Signature verified correctly (timestamps within the validity of the certificate)\n\nThe signature was made in %s from %p1\nOrganization: %p2\nTax code: %p3\nIssuer: %p4"
 msg[en:openssl:verifica:non_ok:ok]="Signature verification failed but timestamps within the validity of the certificate"
 msg[en:openssl:verifica:non_ok_scaduto:ok]="Signature verification failed (certificate expired) but timestamps within the validity of the certificate\n\nThe signature was made in %s from %p1\nOrganization: %p2\nTax code: %p3\nIssuer: %p4"
 msg[en:openssl:verifica:non_ok:non_ok]="Signature verification failed and timestamps failed, outside the validity of the certificate"
 msg[en:openssl:verifica:non_ok_scaduto:non_ok]="Signature verification failed (certificate expired) and timestamps failed, outside the validity of the certificate\n\nThe signature was made in %s from %p1\nOrganization: %p2\nTax code: %p3\nIssuer: %p4"
 msg[en:openssl:verifica:errore:continuo]="Verification document and/or signatures incorrect! Do I still try to extract the content?"
+msg[en:openssl:verifica:timestamp:mancante]="missed timestamps in p7m"
 msg[en:openssl:cert:errore]="Unable to extract the certificates"
 msg[en:openssl:cert:validita]="Certificate validity:: %s"
 msg[en:openssl:asn1parse:error]="Unable to exact any info from this file"
 msg[en:openssl:asn1parse:timestamp]="Timestamps: %s"
-
 msg[en:openssl:estrazione:percorso]="Extract the file in "
 msg[en:eseguibile:openssl:non_trovato]="You must install openssl first"
 msg[en:eseguibile:open_file:non_trovato]="Extract the file"
@@ -176,8 +171,22 @@ Use:
     **-d**: p7m debug (expert only);
     **-g**: try using graphical windows instead of writing in console.
 "
+# ------------------------------------------------------------------------
 
+# ============================= #
+# From here the functions begin #
+# ============================= #
+
+# get_lang_message()
+# --------------------------
+# Description: Get 2 digit lang based on $LANG environment variable
+# Input params: <none>
+# Environment variables used: $LANG
+# Output: 2 digit lang (default "it") 
+# Return value: 0
+# --------------------------
 get_lang_message() {
+	local L
 	L=${LANG%.*}
 	L=${L%_*}
 	if [ "$L" = "C" ]; then 
@@ -188,9 +197,20 @@ get_lang_message() {
 	echo $L
 }
 
+# _msg()
+# --------------------------
+# Description: Display the message with the right language associated with the tag passed as a parameter
+# Input params: 
+#  $1: Key to obtain the phrase in the right language.
+#  $2, ..., $10: Dynamic Parameters to replace some phrases.
+# Global variables used: $msg
+# Output: The phrase in the right language.
+# Return value: 0
+# --------------------------
 _msg() {
+	local value=''
 	if [ -z "$1" ]; then
-		return
+		return 0
 	fi
 	if [ -n "${msg[$L:$1]}" ]; then
 		value="${msg[$L:$1]}"
@@ -210,7 +230,20 @@ _msg() {
 	fi
 	echo "$value"
 }
+# rotate_file()
+# --------------------------
+# Description: Rotate the file passed by parameter add to the name ".1", ".2", ... ".n" where "n" is at the most $ROTATE_NUMBER
+# Input params: 
+#  $1: The file to rotate the name
+# Global variables used: $ROTATE_NUMBER
+# External commans used: seq, mv
+# Output: <none>
+# Return value: the ret value of "mv" command (generally "0")
+# --------------------------
 rotate_file() {
+	local rotate=0
+	local r=''
+	local rr=''
 	if [ -z "$1" -o ! -f "$1" ]; then 
 		return
 	fi
@@ -224,8 +257,18 @@ rotate_file() {
 	mv "$1" "$1.1"
 }
 
+# find_command()
+# --------------------------
+# Description: Check if the command passed as a parameter actually exists.
+# Input params: 
+#  $1: command to verify
+# External commans used: which
+# Output: Complete command path or nothing if not existing.
+# Return value: 0
+# --------------------------
 find_command() {
-	com=''
+	local com=''
+	local c=''
 	for c in "$@"; do
 		if [ `which ${c} 2>/dev/null` ]; then
 			com=${c}
@@ -236,15 +279,22 @@ find_command() {
 }
 
 # del_oldtmp_file()
-#  Parametri di IN: nomi dei file da cancellare
-#
-# Cancellazione file temporanei creati in precedenza
-# Prima della cancellazione faccio dei controlli di sicurezza:
-#   - non devo cancellare il file originale
-#   - non devo cancellare il file finale estratto
-#   - il file deve esistere
-#   - il file deve essere del tipo temporaneo creato da questo script (deve matchare "p7m_")
+# --------------------------
+# Description: Delete temporary files created previously
+#   Before the cancellation there are security checks:
+#   - do not delete the original file;
+#   - the final extracted file must not be deleted;
+#   - the file must exist;
+#   - the file must be of the temporary type created by this script (must match "p7m_").
+# Input params: 
+#  $1, ..., $n: Names of files to be deleted.
+# Global variables used: $p7m_attach, $file
+# External commans used: rm
+# Output: <none>
+# Return value: 0
+# --------------------------
 del_oldtmp_file() {
+	local f=''
 	for f in $@; do
 		if [ "$f" != "$file" -a "$f" != "${p7m_attach}" -a -e "$f" -a "$f" != "${f/p7m_}" ]; then
 			rm -f "$f"
@@ -253,6 +303,19 @@ del_oldtmp_file() {
 	return 0
 }
 
+# download()
+# --------------------------
+# Description: Download $1 url and save it as $2
+#   For download, either wget or curl or GET is used. The download log is located in ${CONF_DIR}/.dwn.log
+# Input params: 
+#  $1: url to download
+#  $2: Name and path of downloaded url
+# Global variables used: $msg, $CONF_DIR, $DWN
+# External commans used: touch, wget, curl, GET
+# Phrases key used: eseguibile:download_url:non_trovato, titolo:download
+# Output: <none>
+# Return value: Return value of either wget or curl or GET (0 if ok)
+# --------------------------
 download() {
 	rotate_file "${CONF_DIR}/.dwn.log"
 	touch "${CONF_DIR}/.dwn.log"
@@ -269,10 +332,34 @@ download() {
 	fi
 	return $?
 }
+
+# call_kdialog()
+# --------------------------
+# Description: Use kdialog to view a message.
+#   kdialog can display the text in html so the message is converted by replacing:
+#   - spaces with & nbsp;
+#   - a sentence enclosed between left and right by 3 '*' with <font color = "red"> ... </font>
+#   - a sentence enclosed between left and right by 2 '*' with <b> ... </b>
+#   - the end of line with <br>
+# Input params: 
+#  $1: Type of window: 
+#    text      : --textbox if lenght $2 > 40960 characters else --msgbox
+#    warn      : --sorry
+#    err       : --error
+#    err_detail: --detailederror
+#    notify    : --passivepopup
+#    warn_yesno: --warningyesno
+#  $2: text to display
+#  $3: title (for --detailederror and --warningyesno is detailed info of $2)
+#  $4: title only for --detailederror and --warningyesno
+# External commans used: kdialog, sed, mktemp
+# Output: kdialog windows
+# Return value: kdialog return
+# --------------------------
 call_kdialog() {
 	local t='<html>'$(echo -e  "$2" | sed -e 's/ /\&nbsp;/g' -e 's/\*\*\*\(.*\)\*\*\*/<font color="red">\1<\/font>/g' -e 's/\*\*\(.*\)\*\*/<b>\1<\/b>/g' -e 's/$/<br>/g')'</html>'
 	local t2='<html>'$(echo -e  "$2<br><br><i>$3</i>" | sed -e 's/ /\&nbsp;/g' -e 's/\*\*\*\(.*\)\*\*\*/<font color="red">\1<\/font>/g' -e 's/\*\*\(.*\)\*\*/<b>\1<\/b>/g' -e 's/$/<br>/g')'</html>'
-	local log_file
+	local log_file=''
 	if [ $1 = 'text' ]; then
 		if [ ${#2} -gt 40960 ]; then
 			log_file=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
@@ -294,6 +381,24 @@ call_kdialog() {
 		kdialog --title "$4" --warningyesno "$t2" 2>/dev/null
 	fi
 }
+# call_zenity()
+# --------------------------
+# Description: Use zenity to view a message.
+# Input params: 
+#  $1: Type of window:
+#    text      : --text-info if length $2 >= 150 else --info
+#    warn      : --warning
+#    err       : --error
+#    err_detail: --error
+#    notify    : --notification
+#    warn_yesno: --question
+#  $2: text to display
+#  $3: title
+#  $4: detailed text to display
+# External commans used: zenity 
+# Output: zenity windows
+# Return value: zenity return
+# --------------------------
 call_zenity() {
 	if [ $1 = 'text' ]; then
 		if [ ${#2} -gt 150 ]; then 
@@ -313,10 +418,21 @@ call_zenity() {
 		zenity --question --title="$4" --text="$2\n\n$3" 2>/dev/null
 	fi
 }
+# call_xmessage()
+# --------------------------
+# Description: Use xmessage to view a message.
+# Input params: 
+#  $1: Type of window: text, warn, err, err_detail, notify, warn_yesno
+#  $2: text to display
+#  $3: for err_detail and warn_yesno is detailed info of $2
+# External commans used: xmessage
+# Output: xmessage windows
+# Return value: xmessage return
+# --------------------------
 call_xmessage() {
 	if [ $1 = 'text' ]; then
 		echo -e "$2" | xmessage -nearmouse -file - 2>/dev/null
-	elif [ $1 = 'warn' ]; then
+	elif [ $3 = 'warn' ]; then
 		echo -e "$2" | xmessage -nearmouse -file - 2>/dev/null
 	elif [ $1 = 'err' ]; then
 		echo -e "$2" | xmessage -nearmouse -file - 2>/dev/null
@@ -328,13 +444,25 @@ call_xmessage() {
 		echo -e "$2\n\n$3"
 	fi
 }
+# call_echo()
+# --------------------------
+# Description: Use echo to view a message.
+# Input params: 
+#  $1: Type of window: text, warn, warn_yesno
+#  $2: text to display
+#  $3: title (for  err_detail and warn_yesno is detailed info of $2)
+#  $4: detailed info of $2 for err_detail and warn_yesno
+# External commans used: sed
+# Output: echo message.
+# Return value: 0 or 1 if warn_yesno and the answer is different from 's' or 'y'.
+# --------------------------
 call_echo() {
 	# controllo se l'output va nel terminale o in una pipe
 	local ret=0
-	local t
-	local answer
+	local t=''
+	local answer=''
 	if [ -t 1 ]; then
-		t=$(echo -e "${BRed}$4${NC}$2" | sed -e "s/\*\*\*\(.*\)\*\*\*/\\\033[0;31m\1\\\033[0m/g" -e "s/\*\*\(.*\)\*\*/\\\033[1;37m\1\\\033[0m/g")
+		t=$(echo -e "${BRed}$4${NC}\n$2" | sed -e "s/\*\*\*\(.*\)\*\*\*/\\\033[0;31m\1\\\033[0m/g" -e "s/\*\*\(.*\)\*\*/\\\033[1;37m\1\\\033[0m/g")
 		# Title
 		if [ -n "$3" ]; then 
 			if [ $1 = 'text' ]; then
@@ -371,6 +499,15 @@ call_echo() {
 	fi
 	return $ret
 }
+# display()
+# --------------------------
+# Description: Display a text message using the right dialog message
+# Input params: 
+#  $1, ..., $n: parameters like in call_xyz function (see call_kdialog for example) 
+# Global variables used: XDIALOG, $out
+# Output: the dialog message
+# Return value: the return from the dialog message
+# --------------------------
 display() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "text" "$@"
@@ -378,6 +515,15 @@ display() {
 		call_echo "text" "$@"
 	fi
 }
+# notify()
+# --------------------------
+# Description: Display a notify message using the right dialog message
+# Input params: 
+#  $1, ..., $n: parameters like in call_xyz function (see call_kdialog for example)
+# Global variables used: XDIALOG, $out
+# Output: the dialog message
+# Return value: the return from the dialog message
+# --------------------------
 notify() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "notify" "$@"
@@ -386,6 +532,15 @@ notify() {
 		call_echo "text" "$@"
 	fi
 }
+# warn()
+# --------------------------
+# Description: Display a warn message using the right dialog message
+# Input params: 
+#  $1, ..., $n: parameters like in call_xyz function (see call_kdialog for example)
+# Global variables used: XDIALOG, $out
+# Output: the dialog message
+# Return value: the return from the dialog message
+# --------------------------
 warn() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "warn" "$@"
@@ -393,6 +548,15 @@ warn() {
 		call_echo "warn" "$@"
 	fi
 }
+# err()
+# --------------------------
+# Description: Display a err message using the right dialog message
+# Input params: 
+#  $1, ..., $n: parameters like in call_xyz function (see call_kdialog for example)
+# Global variables used: XDIALOG, $out
+# Output: the dialog message
+# Return value: the return from the dialog message
+# --------------------------
 err() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "err" "$@"
@@ -400,6 +564,15 @@ err() {
 		call_echo "err" "$@"
 	fi
 }
+# err_detail()
+# --------------------------
+# Description: Display a err_detail message using the right dialog message
+# Input params: 
+#  $1, ..., $n: parameters like in call_xyz function (see call_kdialog for example)
+# Global variables used: XDIALOG, $out
+# Output: the dialog message
+# Return value: the return from the dialog message
+# --------------------------
 err_detail() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "err_detail" "$@"
@@ -407,6 +580,15 @@ err_detail() {
 		call_echo "err" "$1" "$3" "$2"
 	fi
 }
+# warn_yesno()
+# --------------------------
+# Description: Display a warn_yesno message using the right dialog message
+# Input params: 
+#  $1, ..., $n: parameters like in call_xyz function (see call_kdialog for example)
+# Global variables used: XDIALOG, $out
+# Output: the dialog message
+# Return value: the return from the dialog message
+# --------------------------
 warn_yesno() {
 	if [ "${out}" = 'g' -a -n "${XDIALOG}" ]; then
 		call_${XDIALOG} "warn_yesno" "$@"
@@ -415,7 +597,18 @@ warn_yesno() {
 	fi
 }
 	
+# getnewcert()
+# --------------------------
+# Description: Download the CA cert file if not exist or if its timestamp is too old
+# Input params: <none>
+# Global variables used: $CONF_DIR, $CA_OLD_TIME_SEC
+# External commans used: date
+# Output: as getcert functions
+# Return value: as getcert functions
+# --------------------------
 getnewcert() {
+	local sec_old=0
+	local sec_now=0
 	if [ ! -f ${CONF_DIR}/ca.pem ]; then
 	       getcert notify
 	else
@@ -426,7 +619,21 @@ getnewcert() {
 		fi
 	fi
 }
+# getcert()
+# --------------------------
+# Description: Download the CA cert file if not exist
+# Input params: <none>
+# Global variables used: $CONF_DIR, $XML_CERTS
+# External commans used: mkdir, sed, grep, openssl, mv, rm, cat
+# Phrases key used: errore:file:conf_dir, titolo:cert, download_url:ca:attendi, download_url:ca:ok, download_url:ca:non_ok
+# Output: information messages during the download
+# Return value: 
+#   0 : all ok
+#   1 : Unable to create the .p7m directory
+#   2 : Unable to download the 'CA' at this time
+# --------------------------
 getcert() {
+  local i
   mkdir -p ${CONF_DIR}
   if [ ! -d "${CONF_DIR}" ]; then
 	  err "$(_msg 'errore:file:conf_dir')" "$(_msg 'titolo:cert')"
@@ -461,12 +668,15 @@ fi
 return 0
 }
 
-# ##################################################### #
-# from_base64_to_p7m():
-# Converte un file p7m encodato in base64 in p7m standard
-# Parametro di in: $1 = percorso del file da convertire
-# Uscita: percorso del file p7m non encodato
-# ##################################################### #
+# from_base64_to_p7m()
+# --------------------------
+# Description: Converts a p7m file encoded in base64 to standard p7m
+# Input params: 
+#  $1: path of the file to convert
+# External commans used: mktemp, openssl
+# Output: path of the converted file
+# Return value: 0
+# --------------------------
 from_base64_to_p7m() {
 	local file_pem=$1
 	local newp7m=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
@@ -488,6 +698,19 @@ from_base64_to_p7m() {
 # Parametro di in: $1 = percorso del file da verificare
 # Uscita: 0 se verifica OK altrimenti 1
 # ##################################################### #
+# is_pkcs7()
+# --------------------------
+# Description: Check if the p7m file passed as a parameter is a true p7m
+# Input params: 
+#  $1: path of the file to check
+# External commans used: openssl
+# Output: 
+#   0: all check is ok
+#   1: $1 is not a pkcs7 file
+# Return value: 
+#   0: all check is ok
+#   1: $1 is not a pkcs7 file
+# --------------------------
 is_pkcs7() {
 	local file_test=$1
 	local real_file_test=$(from_base64_to_p7m "$file_test")
@@ -510,12 +733,15 @@ is_pkcs7() {
 	return 1
 }
 
-# ##################################################### #
-# from_pem_to_der():
-#  Converte un file p7m da PEM a DER
-# Parametro di in: $1 = percorso del file da convertire
-# Uscita: percorso del file in formato DER
-# ##################################################### #
+# from_pem_to_der()
+# --------------------------
+# Description: Converts from PEM to DER format
+# Input params: 
+#  $1: path of the file to convert
+# External commans used: mktemp, openssl
+# Output: path of the converted file
+# Return value: 0
+# --------------------------
 from_pem_to_der() {
 	local file_pem=$1
 	local der=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
@@ -532,7 +758,36 @@ from_pem_to_der() {
 	return 0
 }
 
+# verify()
+# --------------------------
+# Description: Check the correctness of the p7m file including the signatures
+# Input params: 
+#  $1: path of the file to verify
+# Global variables used: $CONF_DIR
+# External commans used: openssl, sed, grep, date
+# Phrases key used: download_url:ca:mancante, openssl:verifica:errore:formato, titolo:openssl:verify, openssl:verifica:timestamp:mancante,
+#   openssl:verifica:ok:ok, openssl:verifica:non_ok_scaduto:ok, openssl:verifica:non_ok_scaduto:non_ok, openssl:verifica:non_ok:ok,
+#   openssl:verifica:non_ok:non_ok
+# Output: Verification status messages
+# Return value: 
+#  0: p7m file is ok
+#  1: The CA is missing, download it first
+#  2: File format error
+#  8: missed timestamps in p7m
+# 10: Signature verification failed (certificate expired) and timestamps failed
+# 11: Signature verification failed and timestamps failed, outside the validity of the certificate
+# --------------------------
 verify() {
+	local i idx OLD_IFS R err
+	local utc utctime verify_res now sn timestamp_readable
+	local timestamp issuer notbefore notafter subject cn cf ou 
+	local issuer_cn notbefore_ts notafter_ts 
+	declare -a timestamps_array
+	declare -a certs_orig_array
+	declare -A serial_timestamps
+	declare -A serial_certs
+	declare -A utctime_hash
+	declare -a verify_msg
 	if [ ! -f "${CONF_DIR}/ca.pem" -o ! -s "${CONF_DIR}/ca.pem" ]; then
 		warn "$(_msg 'download_url:ca:mancante')"
 		return 1
@@ -550,11 +805,6 @@ verify() {
 	# in timestamps_array ci sono:
         #	negli elementi 0,2,4, ecc. (elementi pari) il serial del certificato di chi ha firmato
 	#	negli elementi 1,3,5, ecc. (elementi dispari) l'UTCTIME in formato normalizzato con il locale impostato
-	declare -a timestamps_array
-	declare -a certs_orig_array
-	declare -A serial_timestamps
-	declare -A serial_certs
-	declare -A utctime_hash
 	OLD_IFS=$IFS
 	IFS=$'\n' 
 	timestamps_array=($(openssl pkcs7 -print -text -inform der -in "$1" | sed -n '/issuer_and_serial:/,/UTCTIME:/p'| grep -E ' serial:|UTCTIME:'| sed -e 's/^ *serial: *//' -e 's/^ *UTCTIME: *//' ))
@@ -592,10 +842,9 @@ verify() {
 
 	# verify_res: indica se 0 che le firme e i loro timestamp sono corretti; se >0 c'e' un errore
 	verify_res=0
-	declare -a verify_msg
 	now=$(date "+%s")
 	if [ ${#timestamps_array[*]} -eq 0 ]; then 
-		timestamp_msg="$(_msg 'openssl:verifica:timestamp:mancante')"
+		verify_msg[0]="$(_msg 'openssl:verifica:timestamp:mancante')"
 		verify_res=8
 	else
 		idx=-1
@@ -630,7 +879,7 @@ verify() {
 			# echo -e "\t --------"
 			# echo -e "\t cn=$cn, cf=$cf, ou=$ou"
 			# echo -e "\t issuer_cn=$issuer_cn"
-			# Debug end for summury data
+			# Debug end for summary data
 			verify_res=0
 			if [ $R = "0" ]; then
 				verify_msg[$idx]="$(_msg 'openssl:verifica:ok:ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
@@ -640,14 +889,14 @@ verify() {
 					verify_msg[$idx]="$(_msg 'openssl:verifica:non_ok_scaduto:ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
 				else
 					verify_msg[$idx]="$(_msg 'openssl:verifica:non_ok_scaduto:non_ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
-					verify_res=1
+					verify_res=10
 				fi
 			else
 				if [ "${timestamp}" -ge "${notbefore_ts}" -a "${timestamp}" -le "${notafter_ts}" ]; then
 					verify_msg[$idx]="$(_msg 'openssl:verifica:non_ok:ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
 				else
 					verify_msg[$idx]="$(_msg 'openssl:verifica:non_ok:non_ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
-					verify_res=2
+					verify_res=11
 				fi
 			fi
 
@@ -657,7 +906,19 @@ verify() {
 	return $verify_res
 }
 
+# cert()
+# --------------------------
+# Description: Extract certificates from a pkcs7 file
+# Input params: 
+#  $1: path of pkcs7 file
+# Global variables used: $CONF_DIR
+# External commans used: openssl
+# Phrases key used: download_url:ca:mancante
+# Output: the certs
+# Return value: openssl pkcs7 return valus
+# --------------------------
 cert() {
+	local str R
 	if [ ! -f "${CONF_DIR}/ca.pem" -o ! -s "${CONF_DIR}/ca.pem" ]; then
 		echo "$(_msg 'download_url:ca:mancante')"
 		return 1
@@ -668,15 +929,32 @@ cert() {
 	return $R
 }
 
+# debug_pkcs7()
+# --------------------------
+# Description: Debug with asn1parse a pkcs7 file
+# Input params: 
+#  $1: path of the file to debug
+# External commans used: openssl
+# Output: the asn1 debug output
+# Return value: openssl asn1parse return value
+# --------------------------
 debug_pkcs7() {
+	local str R
 	str=`openssl asn1parse -inform der -in "$1" 2>&1`
 	R=$?
 	echo "$str"
 	return $R
 }
 
-# getxslenvs:
+# getxslenvs()
+# --------------------------
 # Description: Set the environment xsl_file and xsl_url based on version in $1
+# Input params: 
+#  $1: the version of xsl file
+# Global variables used: $xsl_file, $xsl_url, $XSL_V12, $XSL_V12_URL, $XSL_V11, $XSL_V11_URL
+# Output: <none>
+# Return value: 0
+# --------------------------
 getxslenvs() {
 	local version=$1
 	unset xsl_file xsl_url
@@ -689,17 +967,24 @@ getxslenvs() {
 	fi
 }
 
-# copyxslfile:
-# Description: copy xsl file from CONF_DIR to $2 dir
+# copyxslfile()
+# --------------------------
+# Description: copy xsl file from $CONF_DIR to $2 dir
 #              xsl file is based on $1 version of xml (inside fattura elettronica)
-#              the xsl will be downloaded if it does not exist or if it is too old based on CA_OLD_TIME_SEC
+#              the xsl will be downloaded if it does not exist or if it is too old based on $CA_OLD_TIME_SEC
+# Input params: 
+#  $1: version of xsl
+#  $2: dir where copy xsl file from $CONF_DIR 
+# Global variables used: $CONF_DIR, $xsl_file, $xsl_file, $xsl_url
+# External commans used: cp
+# Phrases key used: download_url, titolo:download
+# Output: <none>
+# Return value: 0
+# --------------------------
 copyxslfile() {
 	local version=$1
 	local dir=$2
-	local xsl
-	local url
-	local sec_old
-	local sec_now
+	local xsl url sec_old sec_now
 	getxslenvs $version
 	if [ ! -f "${CONF_DIR}/$xsl_file" -o ! -s "${CONF_DIR}/$xsl_file" ]; then
 		notify "$(_msg 'download_url' $xsl_file)" "$(_msg 'titolo:download')"
@@ -710,8 +995,17 @@ copyxslfile() {
 	fi
 }
 
-# p7mplugin:
+# p7mplugin()
+# --------------------------
 # Description: check if $1 is a fattura elettronica file and copy the right xsl
+# Input params: 
+#  $1: path of fattura elettronica file
+# Global variables used: $IS_FATTURA, $xsl_file
+# External commans used: file, grep, sed, dirname
+# Output: <none>
+# Return value: 0
+#   IS_FATTURA=1 if $1 is a fattura elettronica
+# --------------------------
 p7mplugin() {
 	local file=$1
 	local t=`file -b --mime-type "$file"`
@@ -736,12 +1030,17 @@ p7mplugin() {
 	fi
 }
 
-#getP7mFile
+# getP7mFile()
+# --------------------------
 # Description: Open dialog box (if possible) to select a p7m file if not yet present
-# Input params:
+# Input params: 
 #  $1: file p7m if already present
+# Global variables used: $out, $XDIALOG, $PWD
+# External commans used: kdialog, zenity
+# Phrases key used: titolo:seleziona:p7m
 # Output: the p7m selected or $1
 # Return value: 0
+# --------------------------
 getP7mFile() {
 	local file=''
 	if [ -n "$1" -o "$out" != 'g' ]; then
@@ -755,11 +1054,15 @@ getP7mFile() {
 	return 0
 }
 
-# getHelp
+# getHelp()
+# --------------------------
 # Description: Display help usage message for p7m
 # Input params: 
 #  $1: Message to prepend to the help usage message
+# Phrases key used: p7m:usage
 # Output: Display 'p7m:usage' phrase
+# Return value: 0
+# --------------------------
 getHelp() {
 	display "$(_msg 'p7m:usage' "$1")"	
 }
@@ -774,6 +1077,7 @@ if [ -f "${CONF_DIR}/p7m_config" ]; then
 	source "${CONF_DIR}/p7m_config"
 fi
 
+# Set same environment variables
 L=$(get_lang_message)
 DWN=$(find_command ${DWL_ORDER})
 OPEN=$(find_command ${OPEN_ORDER})
