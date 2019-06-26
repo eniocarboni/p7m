@@ -4,11 +4,11 @@
 # p7m: script for the management of files with digital signature in the CADES format.
 # See: https://github.com/eniocarboni/p7m
 # Author: Enio Carboni
-# Version: 0.3
+# Version: 0.4
 # ----------------------------------------
 
 # ---------------------------------------
-# Main Globa variables:
+# Main Global variables:
 # You can modify these variables but I recommend doing this using the configuration file $CONF_DIR/p7m_config
 # ---------------------------------------
 
@@ -171,6 +171,11 @@ Use:
     **-d**: p7m debug (expert only);
     **-g**: try using graphical windows instead of writing in console.
 "
+# P7MTYPE: 
+#   smime: use openssl smime
+#   cms  : use new openssl cms
+# Inizialized calling getP7mType() function
+P7MTYPE=''
 # ------------------------------------------------------------------------
 
 # ============================= #
@@ -597,6 +602,156 @@ warn_yesno() {
 	fi
 }
 	
+
+# opensslVerify()
+# --------------------------
+# Description: start openssl command to verify the p7m file either in smime or cms
+# Input params: 
+#  $1: p7m file to verify
+#  $2: format (DER or PEM). Default to DER
+#  $3: no_out (no output like -out /dev/null 2>&1)
+# Global variables used: $P7MTYPE, $CONF_DIR
+# Output: the output of openssl command used
+# Return value: the return from the openssl command
+# --------------------------
+opensslVerify() {
+	local format="DER"
+	local noout='';
+	if [ -n "$2" ]; then
+		format="$2"
+	fi
+	if [ -n "$3" -a "$3" = "no_out" ]; then
+		noout='-out /dev/null 2>/dev/null'
+		openssl ${P7MTYPE} -verify -CAfile "${CONF_DIR}/ca.pem" -in "$1" -inform "$format" -out /dev/null 2>/dev/null
+	else
+		openssl ${P7MTYPE} -verify -CAfile "${CONF_DIR}/ca.pem" -in "$1" -inform "$format"
+	fi
+	return $?
+}
+
+# opensslTextStruct()
+# --------------------------
+# Description: Display text info of p7m struct
+# Input params: 
+#  $1: p7m file to info
+# Global variables used: $P7MTYPE
+# Output: the output of openssl command used
+# Return value: the return from the openssl command
+# --------------------------
+opensslTextStruct() {
+	local ret
+	if [ "${P7MTYPE}" = "smime" ]; then
+		# smime
+		openssl pkcs7 -print -text -inform der -in "$1"
+		ret=$?
+	else
+		# cms
+		openssl cms -inform DER -verify -noverify -nosigs -cmsout -print -text -in "$1"
+		ret=$?
+	fi
+	return "$ret"
+}
+
+# getIssuerTimestamps()
+# --------------------------
+# Description: Display the serials and timestamps of the signers
+# Input params: 
+#  $1: p7m file
+# Global variables used: $P7MTYPE
+# Output: For each signers display the cert's serial in the first line and the timestamp in the second line
+#         the timestamp is normalized in your localtime
+# Return value: the return from the openssl command
+# --------------------------
+getIssuerTimestamps() {
+	local info=$(opensslTextStruct "$1")
+	local ret=$?
+	if [ "${P7MTYPE}" = "smime" ]; then
+		# smime
+		echo "$info" | sed -n '/issuer_and_serial:/,/UTCTIME:/p'| grep -E ' serial:|UTCTIME:'| sed -e 's/^ *serial: *//' -e 's/^ *UTCTIME: *//'
+	else
+		# cms
+		echo "$info" | sed -n '/issuerAndSerialNumber:/,/UTCTIME:/p' | grep -E ' serialNumber:|UTCTIME:' | sed -e 's/^ *serialNumber: *//' -e 's/^ *UTCTIME: *//'
+	fi
+	return $ret
+}
+
+# getCertsFields()
+# --------------------------
+# Description: Display the main fields of the certs of the signers
+# Input params: 
+#  $1: p7m file
+# Global variables used: $P7MTYPE
+# Output: For each signers display the main cert's fields one for each line:
+#         In 1st line display the serialNumber,
+#         in 2nd line the issuer,
+#         in 3rd line the notBefore date,
+#         in 4th line the notAfter date,
+#         in 5th line the subject
+# Return value: the return from the openssl command
+# --------------------------
+getCertsFields() {
+	local info=$(opensslTextStruct "$1")
+	local ret=$?
+	# smime and cms output are both ok
+	echo "$info" | sed -n '/cert_info:/,/issuerUID:/p'| grep -E ' serialNumber:|issuer:|notBefore:|notAfter:|subject:' | grep -E ' serialNumber:|issuer:|notBefore:|notAfter:|subject:' | sed 's/^ *\(serialNumber:\|issuer:\|notBefore:\|notAfter:\|subject:\) *//'
+	return $ret
+}
+
+# getTs()
+# Description: return the second from origin based on date in $1
+# Input params:
+#  $1: the date to convert
+# Output: The second from origin
+# Return value: the return value of date command
+# --------------------------
+getTs() {
+	local ts=$(date --date="$1" "+%s")
+	local ret=$?
+	echo "$ts"
+	return $ret
+}
+
+# getCn()
+# Description: return the CN from a cert subject field as $1
+# Input params:
+#  $1: the subject
+# Output: The CN
+# Return value: 0
+# --------------------------
+getCn() {
+	echo "$1" |sed -e 's/^.*CN=//' -e 's/[\/,].*$//' 2>&1
+	return 0
+}
+
+# getCf()
+# Description: return the CF from a cert subject field as $1
+# Input params:
+#  $1: the subject
+# Output: The CF (codice fiscale)
+# Return value: 0
+# --------------------------
+getCf() {
+	echo "$1" | sed -e 's/^.*serialNumber=//' -e 's/[\/,].*$//' -e 's/^.*://' 2>&1
+	return 0
+}
+
+# getOu()
+# Description: return the OU from a cert subject field as $1
+# Input params:
+#  $1: the subject
+# Output: The OU
+# Return value: 0
+# --------------------------
+getOu() {
+	local subject=$1
+	local ou="non presente"
+	if [ "$subject" != "${subject/O=}" ]; then
+		ou=$(echo $subject |sed -e 's/^.*O=//' -e 's/[\/,].*$//' -e 's/^.*://' 2>&1)
+	fi
+	echo "$ou"
+	return 0
+}
+
 # getnewcert()
 # --------------------------
 # Description: Download the CA cert file if not exist or if its timestamp is too old
@@ -692,13 +847,7 @@ from_base64_to_p7m() {
 }
 
 
-# ##################################################### #
-# is_pkcs7():
-#  Verifica se il file p7m passato come parametro è un vero p7m
-# Parametro di in: $1 = percorso del file da verificare
-# Uscita: 0 se verifica OK altrimenti 1
-# ##################################################### #
-# is_pkcs7()
+# is_p7m()
 # --------------------------
 # Description: Check if the p7m file passed as a parameter is a true p7m
 # Input params: 
@@ -706,12 +855,12 @@ from_base64_to_p7m() {
 # External commans used: openssl
 # Output: 
 #   0: all check is ok
-#   1: $1 is not a pkcs7 file
+#   1: $1 is not a p7m file
 # Return value: 
 #   0: all check is ok
-#   1: $1 is not a pkcs7 file
+#   1: $1 is not a p7m file
 # --------------------------
-is_pkcs7() {
+is_p7m() {
 	local file_test=$1
 	local real_file_test=$(from_base64_to_p7m "$file_test")
 	# check if in pem format
@@ -726,10 +875,68 @@ is_pkcs7() {
 		echo "0"
 		return 0
 	fi
+	# check if CMS (and no SMIME) in pem format
+	openssl cms -inform PEM -verify -noverify -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		echo "0"
+		return 0
+	fi
+	# check if CMS (and no SMIME) in der format
+	openssl cms -inform DER -verify -noverify -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		echo "0"
+		return 0
+	fi
 	if [ "$real_file_test" != "$file_test" ]; then
 		del_oldtmp_file "$real_file_test"
 	fi
 	echo "1"
+	return 1
+}
+
+# getP7mType()
+# --------------------------
+# Description: Check if the p7m file passed as a parameter id smime or cms p7m type
+# Input params: 
+#  $1: path of the file to check
+# External commans used: openssl
+# Output: 
+#   smime: smime file
+#   cms: cms file
+# Return value: 
+#   0: smime or cms file
+#   1: $1 is not a p7m file
+# --------------------------
+getP7mType() {
+	local file_test=$1
+	local real_file_test=$(from_base64_to_p7m "$file_test")
+	# check if in pem format
+	openssl pkcs7 -print_certs -text -noout -inform pem -in "$real_file_test" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		echo "smime"
+		return 0
+	fi
+	# check if in der format
+	openssl pkcs7 -print_certs -text -noout -inform der -in "$real_file_test" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		echo "smime"
+		return 0
+	fi
+	# check if CMS (and no SMIME) in pem format
+	openssl cms -inform PEM -verify -noverify -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		echo "cms"
+		return 0
+	fi
+	# check if CMS (and no SMIME) in der format
+	openssl cms -inform DER -verify -noverify -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		echo "cms"
+		return 0
+	fi
+	if [ "$real_file_test" != "$file_test" ]; then
+		del_oldtmp_file "$real_file_test"
+	fi
 	return 1
 }
 
@@ -746,11 +953,14 @@ from_pem_to_der() {
 	local file_pem=$1
 	local der=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
 	# check if in pem format to convert in der
-	openssl pkcs7 -print_certs -text -noout -inform pem -in "$file_pem" >/dev/null 2>&1
-	if [ $? == 0 ]; then
-		# convert from pem to der
-		openssl pkcs7 -outform der -in "$file_pem" -out "$der"
+	if [ "$P7MTYPE" = 'smime' ]; then
+		# smime
+		openssl pkcs7 -outform der -in "$file_pem" -out "$der" >/dev/null 2>&1
 	else
+		# cms
+		openssl cms -inform PEM -verify -noverify -nosigs -cmsout -outform DER -out "$der" -in "$file_pem" >/dev/null 2>&1
+	fi
+	if [ $? != 0 ]; then
 		del_oldtmp_file "$der"
 		der="$file_pem"
 	fi
@@ -792,7 +1002,7 @@ verify() {
 		warn "$(_msg 'download_url:ca:mancante')"
 		return 1
 	fi
-	err=`openssl smime -verify -CAfile "${CONF_DIR}/ca.pem" -in "$1" -inform DER -out /dev/null 2>&1`
+	err=$(opensslVerify "$1" "DER" "no_out")
 	R=$?
 	if [ $R = "2" ]; then
 		if [ -z "$2" ]; then
@@ -807,13 +1017,13 @@ verify() {
 	#	negli elementi 1,3,5, ecc. (elementi dispari) l'UTCTIME in formato normalizzato con il locale impostato
 	OLD_IFS=$IFS
 	IFS=$'\n' 
-	timestamps_array=($(openssl pkcs7 -print -text -inform der -in "$1" | sed -n '/issuer_and_serial:/,/UTCTIME:/p'| grep -E ' serial:|UTCTIME:'| sed -e 's/^ *serial: *//' -e 's/^ *UTCTIME: *//' ))
-	certs_orig_array=($(openssl pkcs7 -print -text -inform der -in "$1" | sed -n '/cert_info:/,/issuerUID:/p'| grep -E ' serialNumber:|issuer:|notBefore:|notAfter:|subject:' | grep -E ' serialNumber:|issuer:|notBefore:|notAfter:|subject:' | sed 's/^ *\(serialNumber:\|issuer:\|notBefore:\|notAfter:\|subject:\) *//'))
+	timestamps_array=($(getIssuerTimestamps "$1"))
+	certs_orig_array=($(getCertsFields "$1"))
 	IFS=$OLD_IFS
 	for (( i=0; i<${#timestamps_array[*]}; i=$(($i+2)) )); do
           serial_timestamps[${timestamps_array[$i]}]=$i
 	  utctime=${timestamps_array[$(($i+1))]}
-	  utctime=$(date --date="${utctime}" "+%s")
+	  utctime=$(getTs "${utctime}")
 	  utctime_hash[$utctime]=${timestamps_array[$i]}
 	done
 	# in certs_orig_array ci sono:
@@ -854,20 +1064,17 @@ verify() {
 			idx_ts=${serial_timestamps[$sn]}
 			idx_cert=${serial_certs[$sn]}
 			timestamp_readable=${timestamps_array[$(( $idx_ts + 1 ))]}
-			timestamp=$(date --date="${timestamp_readable}" "+%s")
+			timestamp=$(getTs "${timestamp_readable}")
 			issuer=${certs_orig_array[$(( $idx_cert + 1 ))]}
 			notbefore=${certs_orig_array[$(( $idx_cert + 2 ))]}
 			notafter=${certs_orig_array[$(( $idx_cert + 3 ))]}
 			subject=${certs_orig_array[$(( $idx_cert + 4 ))]}
-			cn=$(echo $subject |sed -e 's/^.*CN=//' -e 's/[\/,].*$//' 2>&1)
-			cf=$(echo $subject |sed -e 's/^.*serialNumber=//' -e 's/[\/,].*$//' -e 's/^.*://' 2>&1)
-			ou="non presente"
-			if [ "$subject" != "${subject/O=}" ]; then
-				ou=$(echo $subject |sed -e 's/^.*O=//' -e 's/[\/,].*$//' -e 's/^.*://' 2>&1)
-			fi
-			issuer_cn=$(echo $issuer|sed -e 's/^.*CN=//' -e 's/[\/,].*$//' 2>&1)
-			notbefore_ts=$(date --date="${notbefore}" "+%s")
-			notafter_ts=$(date --date="${notafter}" "+%s")
+			cn=$(getCn "$subject")
+			cf=$(getCf "$subject")
+			ou=$(getOu "$subject")
+			issuer_cn=$(getCn "$issuer")
+			notbefore_ts=$(getTs "${notbefore}")
+			notafter_ts=$(getTs "${notafter}")
 
 			# Debug for summury data
 			# echo -e "serialNumber: $sn"
@@ -923,8 +1130,18 @@ cert() {
 		echo "$(_msg 'download_url:ca:mancante')"
 		return 1
 	fi
-	str=`openssl pkcs7 -print_certs -text -inform der -in "$1" 2>&1`
-	R=$?
+	if [ "${P7MTYPE}" = "smime" ]; then
+		# smime
+		str=`openssl pkcs7 -print_certs -text -inform der -in "$1" 2>&1`
+		R=$?
+	else
+		# cms
+		local certsfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
+		openssl cms -verify -inform DER -CAfile "${CONF_DIR}/ca.pem" -certsout ${certsfile} -out /dev/null -in "$1" -out /dev/null 2>/dev/null
+		str=$(openssl crl2pkcs7 -nocrl -certfile ${certsfile} | openssl pkcs7 -print_certs -text)
+		R=$?
+		del_oldtmp_file "${certsfile}"
+	fi
 	echo "$str"
 	return $R
 }
@@ -934,14 +1151,22 @@ cert() {
 # Description: Debug with asn1parse a pkcs7 file
 # Input params: 
 #  $1: path of the file to debug
+# Global variables used: $P7MTYPE
 # External commans used: openssl
 # Output: the asn1 debug output
-# Return value: openssl asn1parse return value
+# Return value: openssl asn1parse or cms fields
 # --------------------------
 debug_pkcs7() {
 	local str R
-	str=`openssl asn1parse -inform der -in "$1" 2>&1`
-	R=$?
+	if [ "${P7MTYPE}" = "smime" ]; then
+		# smime
+		str=$(openssl asn1parse -inform der -in "$1" 2>&1)
+		R=$?
+	else
+		# cms
+		str=$(openssl cms -inform DER -verify -noverify -nosigs -cmsout -print -text -in "$1" 2>&1)
+		R=$?
+	fi
 	echo "$str"
 	return $R
 }
@@ -1150,12 +1375,13 @@ level=-1
 op_continue=1
 op_continue_ret=0
 op_title=''
-if [ $(is_pkcs7 "$checkfile") -ne 0 ]; then 
+if [ $(is_p7m "$checkfile") -ne 0 ]; then 
 	op_continue=0
 	out_continue_array[0]=$(_msg 'errore:file:ext:bad')
 fi
-while [ $op_continue_ret -eq 0 -a $(is_pkcs7 "$checkfile") -eq 0 ]; do
+while [ $op_continue_ret -eq 0 -a $(is_p7m "$checkfile") -eq 0 ]; do
 	level=$(( $level + 1 ))
+	P7MTYPE=$(getP7mType "$checkfile")
 	# Se necessario converto da base64
 	myfile_uu=$(from_base64_to_p7m "$checkfile")
 	unlink_files+=("$myfile_uu")
@@ -1166,7 +1392,7 @@ while [ $op_continue_ret -eq 0 -a $(is_pkcs7 "$checkfile") -eq 0 ]; do
 	if [ $level -eq 0 ]; then 
 		getnewcert
 	fi
-	if [ "$op" == 'v' ]; then
+	if [ "$op" = 'v' ]; then
 		op_continue=0
 		out_continue_array[$level]=$(verify "$myfile")
 		op_continue_ret=$?
@@ -1177,12 +1403,12 @@ while [ $op_continue_ret -eq 0 -a $(is_pkcs7 "$checkfile") -eq 0 ]; do
 		else
 			op_title="openssl:verifica:title:non_ok"
 		fi
-	elif [ "$op" == 'c' ]; then
+	elif [ "$op" = 'c' ]; then
 		op_continue=0
 		out_continue_array[$level]=$(cert "$myfile")
 		op_continue_ret=$?
 		op_title="titolo:openssl:cert"
-	elif [ "$op" == 'd' ]; then
+	elif [ "$op" = 'd' ]; then
 		op_continue=0
 		out_continue_array[$level]=$(debug_pkcs7 "$myfile")
 		op_continue_ret=$?
@@ -1199,7 +1425,7 @@ while [ $op_continue_ret -eq 0 -a $(is_pkcs7 "$checkfile") -eq 0 ]; do
 		fi
 	fi
 	checkfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
-	err=`openssl smime -verify -noverify -in "$myfile" -inform DER -out "$checkfile" 2>&1`
+	err=`openssl ${P7MTYPE} -verify -noverify -in "$myfile" -inform DER -out "$checkfile" 2>&1`
 	code=$?
 	unlink_files+=("$checkfile")
 	if [ $code != "0" ]; then

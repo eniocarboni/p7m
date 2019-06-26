@@ -1,7 +1,7 @@
 ## P7M
 
 [![GPL License](https://img.shields.io/badge/license-GPL-blue.svg)](https://www.gnu.org/licenses/)
-[![Release v 0.2](https://img.shields.io/badge/release-v.0.2-green.svg)](https://github.com/eniocarboni/p7m)
+[![Release v 0.4](https://img.shields.io/badge/release-v.0.4-green.svg)](https://github.com/eniocarboni/p7m)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/EnioCarboni/5)
 
 **p7m** è un p7m viewer e uno script per la gestione dei file con [firma digitale nel formato CADES](https://quoll.it/firma-digitale-p7m-come-estrarre-il-contenuto/).
