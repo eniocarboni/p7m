@@ -836,12 +836,19 @@ from_base64_to_p7m() {
 	local file_pem=$1
 	local newp7m=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
 	# check if in base64 format to convert in original p7m
+	# base64 one line
 	openssl base64 -A -d -in "$file_pem" -out "$newp7m" 2>&1
 	if [ -s "$newp7m" ]; then
 		echo "$newp7m"
 	else
-		del_oldtmp_file "$newp7m"
-		echo "$file_pem"
+		# base64 multiline
+		openssl base64 -d -in "$file_pem" -out "$newp7m" 2>&1
+		if [ -s "$newp7m" ]; then
+			echo "$newp7m"
+		else
+			del_oldtmp_file "$newp7m"
+			echo "$file_pem"
+		fi
 	fi
 	return 0
 }
