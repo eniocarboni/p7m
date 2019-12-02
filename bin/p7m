@@ -45,55 +45,103 @@ XSL_V12_URL="https://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2
 XSL_OLD_TIME_SEC=1296000
 # ------------------------------------------------------------------------
 
-declare -A msg
-# msg: multilang phrases (it [default], en)
-# Consider only the first 2 characters of the language (example it, en)
+declare -a msgKey msgVal msgVal_it msgVal_en
+declare -a msgKeyTitle msgValTitle_it msgValTitle_en 
+declare -a msgKeyError msgValError_it msgValError_en
+declare -a msgKeyOpenssl msgValOpenssl_it msgValOpenssl_en
+declare -a msgKeyExec msgValExec_it msgValExec_en
+declare -a msgKeyDownloadurl msgValDownloadurl_it msgValDownloadurl_en
+declare -a msgKeyFile mgsValFile_it msgValFile_en
+declare -a msgKeyUsage msgValUsage_it msgValUsage_en
+msgKeyTitle=(
+"titolo:p7m" "titolo:seleziona:p7m" "titolo:openssl" "titolo:openssl:verify" "titolo:openssl:cert" "titolo:openssl:asn1parse" "titolo:download" "titolo:cert" "titolo:errore" "titolo:attenzione" "titolo:dettagli")
+msgValTitle_it=("P7M" "Seleziona un p7m" "Openssl" "Openssl verifica firma" "Openssl Certificato" "Openssl debug" "Download" "Cert" "Errore" "Attenzione" "Dettagli")
+msgValTitle_en=("P7M" "Select a p7m file" "Openssl" "Openssl verifica firma" "Openssl Certificato" "Openssl debug" "Download" "Cert" "Error" "Warning" "Details")
 
-# it phrases
-msg[it:titolo:p7m]="P7M"
-msg[it:titolo:seleziona:p7m]="Seleziona un p7m"
-msg[it:titolo:openssl]="Openssl"
-msg[it:titolo:openssl:verify]="Openssl verifica firma"
-msg[it:titolo:openssl:cert]="Openssl Certificato"
-msg[it:titolo:openssl:asn1parse]="Openssl debug"
-msg[it:titolo:download]="Download"
-msg[it:titolo:cert]="Cert"
-msg[it:titolo:errore]="Errore"
-msg[it:titolo:attenzione]="Attenzione"
-msg[it:titolo:dettagli]="Dettagli"
+msgKeyError=("errore:file:ext" "errore:file:ext:bad" "errore:file:non_esiste" "errore:file:conf_dir")
+msgValError_it=("Bisogna passare un file con estensione .p7m come parametro" "Formato del file p7m non riconosciuto." "Non esiste il file. Controllare meglio" "Impossibile creare la directory .p7m nella tua HOME")
+msgValError_en=("You must pass a .p7m file as a parameter" "Bad file p7m format." "There is no file. Check better" "Unable to create the .p7m directory in your HOME")
 
-msg[it:errore:file:ext]="Bisogna passare un file con estensione .p7m come parametro"
-msg[it:errore:file:ext:bad]="Formato del file p7m non riconosciuto."
-msg[it:errore:file:non_esiste]="Non esiste il file. Controllare meglio"
-msg[it:errore:file:conf_dir]="Impossibile creare la directory .p7m nella tua HOME"
-msg[it:openssl:estrazione:errore]="estrazione file terminata con errore"
-msg[it:openssl:verifica:errore:formato]="Errore nel formato del file"
-msg[it:openssl:verifica:title:ok]="Verifica firme avvenuta con successo"
-msg[it:openssl:verifica:title:non_ok]="Verifica firme terminata con errore"
-msg[it:openssl:verifica:ok:ok]="**Firmatario: %s**\n   Data e ora di firma: %p1\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   Validità certificato: %p5 - %p6\n"
-msg[it:openssl:verifica:non_ok:ok]="**Firmatario: %s**\n   Data e ora di firma: %p1\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   ** Certificato non valido: %p5 - %p6\n"
-msg[it:openssl:verifica:non_ok_scaduto:ok]="**Firmatario: %s**\n   Data e ora di firma: %p1\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   ***Certificato scaduto: %p5 - %p6***\n"
-msg[it:openssl:verifica:non_ok_scaduto:non_ok]="**Firmatario: %s**\n   *** Errore in data e ora di firma: %p1***\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   *** Certificato scaduto: %p5 - %p6***\n"
-msg[it:openssl:verifica:non_ok:non_ok]="**Firmatario: %s**\n   *** Errore in data e ora di firma: %p1***\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   *** Errore nel certificato validità: %p5 - %p6***\n"
-msg[it:openssl:verifica:errore:continuo]="Verifica documento e/o firme errate! Provo comunque ad estrarre il contenuto?"
-msg[it:openssl:verifica:timestamp:mancante]="Manca il timestamps nel p7m"
-msg[it:openssl:cert:errore]="Impossibile estrarre il certificato"
-msg[it:openssl:cert:validita]="Validità certificato: %s"
-msg[it:openssl:asn1parse:error]="Impossibile estrarre informazioni dal file"
-msg[it:openssl:asn1parse:timestamp]="Riferimento temporale: %s"
-msg[it:openssl:estrazione:percorso]="Estratto il file in "
-msg[it:eseguibile:openssl:non_trovato]="Devi installare 'openssl' prima di poter usare questo programma"
-msg[it:eseguibile:open_file:non_trovato]="Non trovo nessuno dei comandi:\n ${OPEN_ORDER}\nNon so come aprire il file estratto"
-msg[it:eseguibile:download_url:non_trovato]="Nessun programma di download trovato! Impossibile continuare."
-msg[it:download_url:ca:ok]="CA scaricato perfettamente in"
-msg[it:download_url:ca:non_ok]="Impossibile scaricare il CA in questo momento ... riprovare successivamente"
-msg[it:download_url:ca:mancante]="Manca il CA, scaricarlo con l'opzione -p"
-msg[it:download_url:ca:attendi]="Inizio scaricamento CA ... attendi un attimo"
-msg[it:download_url]="Inizio scaricamento %s ... attendi un attimo"
-msg[it:file:diritti:scrittura]="Impossibile scrivere in "
-msg[it:file:diritti:scrittura:alternativa]="Estratto comunque il file in "
-msg[it:file:sovrascivere]="Sovrascrivere il file "
-msg[it:p7m:usage]="***%s***
+msgKeyOpenssl=("openssl:estrazione:errore" "openssl:verifica:errore:formato" "openssl:verifica:title:ok" "openssl:verifica:title:non_ok" "openssl:verifica:ok:ok" "openssl:verifica:non_ok:ok" "openssl:verifica:non_ok_scaduto:ok" "openssl:verifica:non_ok_scaduto:non_ok" "openssl:verifica:non_ok:non_ok" "openssl:verifica:errore:continuo" "openssl:verifica:timestamp:mancante" "openssl:cert:errore" "openssl:cert:validita" "openssl:asn1parse:error" "openssl:asn1parse:timestamp" "openssl:estrazione:percorso")
+msgValOpenssl_it=(
+"estrazione file terminata con errore" 
+"Errore nel formato del file" 
+"Verifica firme avvenuta con successo" 
+"Verifica firme terminata con errore" 
+"**Firmatario: %s**\n   Data e ora di firma: %p1\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   Validità certificato: %p5 - %p6\n" 
+"**Firmatario: %s**\n   Data e ora di firma: %p1\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   ** Certificato non valido: %p5 - %p6\n"
+"**Firmatario: %s**\n   Data e ora di firma: %p1\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   ***Certificato scaduto: %p5 - %p6***\n"
+"**Firmatario: %s**\n   *** Errore in data e ora di firma: %p1***\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   *** Certificato scaduto: %p5 - %p6***\n"
+"**Firmatario: %s**\n   *** Errore in data e ora di firma: %p1***\n   Ente: %p2\n   CF: %p3\n   Certificatore: %p4\n   *** Errore nel certificato validità: %p5 - %p6***\n"
+"Verifica documento e/o firme errate! Provo comunque ad estrarre il contenuto?"
+"Manca il timestamps nel p7m"
+"Impossibile estrarre il certificato"
+"Validità certificato: %s"
+"Impossibile estrarre informazioni dal file"
+"Riferimento temporale: %s"
+"Estratto il file in "
+)
+msgValOpenssl_en=(
+"File extraction ended with error"
+"File format error"
+"Signature verified correctly"
+"Signature verification failed"
+"**Signer: %s**\n   Date and time of signature: %p1\n   Organization: %p2\n   CF: %p3\n   Issuer: %p4\n   Certificate validity: %p5 - %p6\n" 
+"**Signer: %s**\n   Date and time of signature: %p1\n   Organization: %p2\n   CF: %p3\n   Issuer: %p4\n   ** Invalid certificate: %p5 - %p6\n"
+"**Signer: %s**\n   Date and time of signature: %p1\n   Organization: %p2\n   CF: %p3\n   Issuer: %p4\n   ***Certificate expired: %p5 - %p6***\n"
+"**Signer: %s**\n   *** Error in date and time of signature: %p1***\n   Organization: %p2\n   CF: %p3\n   Issuer: %p4\n   *** Certificate expired: %p5 - %p6***\n"
+"**Signer: %s**\n   *** Error in date and time of signature: %p1***\n   Organization: %p2\n   CF: %p3\n   Issuer: %p4\n   *** Error in Certificate validity: %p5 - %p6***\n"
+"Verification document and/or signatures incorrect! Do I still try to extract the content?"
+"Missed timestamps in p7m"
+"Unable to extract the certificates"
+"Certificate validity: %s"
+"Unable to exact any info from this file"
+"Timestamps: %s"
+"Extract the file in "
+)
+msgKeyExec=("eseguibile:openssl:non_trovato" "eseguibile:open_file:non_trovato" "eseguibile:download_url:non_trovato")
+msgValExec_it=(
+"Devi installare 'openssl' prima di poter usare questo programma"
+"Non trovo nessuno dei comandi:\n ${OPEN_ORDER}\nNon so come aprire il file estratto"
+"Nessun programma di download trovato! Impossibile continuare."
+) 
+msgValExec_en=(
+"You must install openssl first"
+"Non trovo nessuno dei comandi:\n ${OPEN_ORDER}\nI don't know how to open the extracted file"
+"No download program found! It is not possible to continue."
+)
+
+msgKeyDownloadurl=("download_url:ca:ok" "download_url:ca:non_ok" "download_url:ca:mancante" "download_url:ca:attendi" "download_url") 
+msgValDownloadurl_it=(
+"CA scaricato perfettamente in"
+"Impossibile scaricare il CA in questo momento ... riprovare successivamente"
+"Manca il CA, scaricarlo con l'opzione -p"
+"Inizio scaricamento CA ... attendi un attimo"
+"Inizio scaricamento %s ... attendi un attimo"
+) 
+msgValDownloadurl_en=(
+"CA downloaded perfectly into"
+"Unable to download the 'CA' at this time ... try again later"
+"The CA is missing, download it with the -p option"
+"Starting download the CA ... wait, please"
+"Starting download %s ... wait, please"
+)
+
+msgKeyFile=("file:diritti:scrittura" "file:diritti:scrittura:alternativa" "file:sovrascivere") 
+msgValFile_it=(
+"Impossibile scrivere in "
+"Estratto comunque il file in "
+"Sovrascrivere il file "
+) 
+msgValFile_en=(
+"Unable to write in "
+"Extract the file in "
+"Overwrite the file "
+)
+
+msgKeyUsage=("p7m:usage") 
+msgValUsage_it=(
+"***%s***
 
 Usare:
   **p7m** [-x] [-g] [-h] <file.p7m> # Per estrarre il contenuto
@@ -111,49 +159,9 @@ Usare:
     **-d**: utili per il debug del p7m (per esperti);
     **-g**: prova ad utilizzare finestre grafiche invece di scrivere in console.
 "
-
-# en phrases
-msg[en:titolo:p7m]="P7M"
-msg[en:titolo:seleziona:p7m]="Select a p7m file"
-msg[en:titolo:openssl]="Openssl"
-msg[en:titolo:openssl:verify]="Openssl verifica firma"
-msg[en:titolo:openssl:cert]="Openssl Certificato"
-msg[en:titolo:openssl:asn1parse]="Openssl debug"
-msg[en:titolo:download]="Download"
-msg[en:titolo:cert]="Cert"
-msg[en:titolo:errore]="Error"
-msg[en:titolo:attenzione]="Warning"
-msg[en:titolo:dettagli]=" Details"
-msg[en:errore:file:ext]="You must pass a .p7m file as a parameter"
-msg[en:errore:file:ext:bad]="Bad file p7m format."
-msg[en:errore:file:non_esiste]="There is no file. Check better"
-msg[en:errore:file:conf_dir]="Unable to create the .p7m directory in your HOME"
-msg[en:openssl:estrazione:errore]="File extraction ended with error"
-msg[en:openssl:verifica:errore:formato]="File format error"
-msg[en:openssl:verifica:ok:ok]="Signature verified correctly (timestamps within the validity of the certificate)\n\nThe signature was made in %s from %p1\nOrganization: %p2\nTax code: %p3\nIssuer: %p4"
-msg[en:openssl:verifica:non_ok:ok]="Signature verification failed but timestamps within the validity of the certificate"
-msg[en:openssl:verifica:non_ok_scaduto:ok]="Signature verification failed (certificate expired) but timestamps within the validity of the certificate\n\nThe signature was made in %s from %p1\nOrganization: %p2\nTax code: %p3\nIssuer: %p4"
-msg[en:openssl:verifica:non_ok:non_ok]="Signature verification failed and timestamps failed, outside the validity of the certificate"
-msg[en:openssl:verifica:non_ok_scaduto:non_ok]="Signature verification failed (certificate expired) and timestamps failed, outside the validity of the certificate\n\nThe signature was made in %s from %p1\nOrganization: %p2\nTax code: %p3\nIssuer: %p4"
-msg[en:openssl:verifica:errore:continuo]="Verification document and/or signatures incorrect! Do I still try to extract the content?"
-msg[en:openssl:verifica:timestamp:mancante]="missed timestamps in p7m"
-msg[en:openssl:cert:errore]="Unable to extract the certificates"
-msg[en:openssl:cert:validita]="Certificate validity:: %s"
-msg[en:openssl:asn1parse:error]="Unable to exact any info from this file"
-msg[en:openssl:asn1parse:timestamp]="Timestamps: %s"
-msg[en:openssl:estrazione:percorso]="Extract the file in "
-msg[en:eseguibile:openssl:non_trovato]="You must install openssl first"
-msg[en:eseguibile:open_file:non_trovato]="Extract the file"
-msg[en:eseguibile:download_url:non_trovato]="No download program found! It is not possible to continue."
-msg[en:download_url:ca:ok]="CA downloaded perfectly into"
-msg[en:download_url:ca:non_ok]="Unable to download the 'CA' at this time ... try again later"
-msg[en:download_url:ca:mancante]="The CA is missing, download it with the -p option"
-msg[en:download_url:ca:attendi]="Starting download the CA ... wait, please"
-msg[en:download_url]="Starting download %s ... wait, please"
-msg[en:file:diritti:scrittura]="Unable to write in "
-msg[en:file:diritti:scrittura:alternativa]="Extract the file in "
-msg[en:file:sovrascivere]="Overwrite the file "
-msg[en:p7m:usage]="***%s***
+) 
+msgValUsage_en=(
+"***%s***
 
 Use:
   **p7m** [-x] [-g] [-h] <file.p7m> # To extract content
@@ -171,6 +179,60 @@ Use:
     **-d**: p7m debug (expert only);
     **-g**: try using graphical windows instead of writing in console.
 "
+)
+
+idx=-1
+for i in "${msgKeyTitle[@]}"; do
+	idx=$(($idx + 1 ))
+	msgKey[$idx]=${msgKeyTitle[$idx]}
+	msgVal_it[$idx]=${msgValTitle_it[$id_x]}
+	msgVal_en[$idx]=${msgValTitle_en[$id_x]}
+done
+idx=99
+for i in "${msgKeyError[@]}"; do
+	idx=$(($idx + 1 ))
+	msgKey[$idx]=${msgKeyError[$(($idx - 100))]}
+	msgVal_it[$idx]=${msgValError_it[$(($idx - 100))]}
+	msgVal_en[$idx]=${msgValError_en[$(($idx - 100))]}
+
+done
+idx=199
+for i in "${msgKeyOpenssl[@]}"; do
+	idx=$(($idx + 1 ))
+	msgKey[$idx]=${msgKeyOpenssl[$(($idx - 200))]}
+	msgVal_it[$idx]=${msgValOpenssl_it[$(($idx - 200))]}
+	msgVal_en[$idx]=${msgValOpenssl_en[$(($idx - 200))]}
+done
+idx=299
+for i in "${msgKeyExec[@]}"; do
+	idx=$(($idx + 1 ))
+	msgKey[$idx]=${msgKeyExec[$(($idx - 300))]}
+	msgVal_it[$idx]=${msgValExec_it[$(($idx - 300))]}
+	msgVal_en[$idx]=${msgValExec_en[$(($idx - 300))]}
+done
+idx=399
+for i in "${msgKeyDownloadurl[@]}"; do
+	idx=$(($idx + 1 ))
+	msgKey[$idx]=${msgKeyDownloadurl[$(($idx - 400))]}
+	msgVal_it[$idx]=${msgValDownloadurl_it[$(($idx - 400))]}
+	msgVal_en[$idx]=${msgValDownloadurl_en[$(($idx - 400))]}
+done
+idx=499
+for i in "${msgKeyFile[@]}"; do
+	idx=$(($idx + 1 ))
+	msgKey[$idx]=${msgKeyFile[$(($idx - 500))]}
+	msgVal_it[$idx]=${msgValFile_it[$(($idx - 500))]}
+	msgVal_en[$idx]=${msgValFile_en[$(($idx - 500))]}
+done
+idx=599
+for i in "${msgKeyUsage[@]}"; do
+	idx=$(($idx + 1 ))
+	msgKey[$idx]=${msgKeyUsage[$(($idx - 600))]}
+	msgVal_it[$idx]=${msgValUsage_it[$(($idx - 600))]}
+	msgVal_en[$idx]=${msgValUsage_en[$(($idx - 600))]}
+done
+
+
 # P7MTYPE: 
 #   smime: use openssl smime
 #   cms  : use new openssl cms
@@ -181,6 +243,24 @@ P7MTYPE=''
 # ============================= #
 # From here the functions begin #
 # ============================= #
+
+# get_msg_key()
+# --------------------------
+# Description: Return the key of msgKey array based on the value in $1
+# Input params: $1 - value in msgKey array
+# Environment variables used: msgKey
+# Output: index of array msgKey based on the value in $1
+# Return value: 0
+# --------------------------
+get_msg_key() {
+	value="$1"
+	for i in "${!msgKey[@]}"; do
+		if [[ "${msgKey[$i]}" = "${value}" ]]; then
+			echo "${i}";
+		fi
+	done
+}
+
 
 # get_lang_message()
 # --------------------------
@@ -202,26 +282,44 @@ get_lang_message() {
 	echo $L
 }
 
+populate_msg() {
+	local m keys key val
+	if [ ${#msgVal[@]} -eq 0 ]; then 
+		if [ -z "$L" ];	then 
+			L=$(get_lang_message)
+		fi
+		# we have to popolate it
+		# default to lang "it"
+		for key in "${!msgVal_it[@]}"; do
+			msgVal[$key]=${msgVal_it[$key]}
+		done
+		m="msgVal_$L"
+		eval "keys=\${!$m[@]}"
+		for key in $keys; do
+			eval "val=\${$m[$key]}"
+			msgVal[$key]=$val
+		done
+	fi
+}
+
 # _msg()
 # --------------------------
 # Description: Display the message with the right language associated with the tag passed as a parameter
 # Input params: 
 #  $1: Key to obtain the phrase in the right language.
 #  $2, ..., $10: Dynamic Parameters to replace some phrases.
-# Global variables used: $msg
+# Global variables used: $msgVal
 # Output: The phrase in the right language.
 # Return value: 0
 # --------------------------
 _msg() {
 	local value=''
+	local key
 	if [ -z "$1" ]; then
 		return 0
 	fi
-	if [ -n "${msg[$L:$1]}" ]; then
-		value="${msg[$L:$1]}"
-	else 
-		value="${msg[it:$1]}"
-	fi
+	key=$(get_msg_key "$1")
+	value=${msgVal[$key]}
 	if [ -n "$2" ]; then
 		value=$(echo "$value" | sed "s/\%s/$2/g")
 		value=$(echo "$value" | sed "s/\%p1/$3/g")
@@ -995,15 +1093,13 @@ from_pem_to_der() {
 # 11: Signature verification failed and timestamps failed, outside the validity of the certificate
 # --------------------------
 verify() {
-	local i idx OLD_IFS R err
+	local i idx id_utc OLD_IFS R err
 	local utc utctime verify_res now sn timestamp_readable
 	local timestamp issuer notbefore notafter subject cn cf ou 
 	local issuer_cn notbefore_ts notafter_ts 
 	declare -a timestamps_array
 	declare -a certs_orig_array
-	declare -A serial_timestamps
-	declare -A serial_certs
-	declare -A utctime_hash
+	declare -a utctime_array
 	declare -a verify_msg
 	if [ ! -f "${CONF_DIR}/ca.pem" -o ! -s "${CONF_DIR}/ca.pem" ]; then
 		warn "$(_msg 'download_url:ca:mancante')"
@@ -1022,40 +1118,26 @@ verify() {
 	# in timestamps_array ci sono:
         #	negli elementi 0,2,4, ecc. (elementi pari) il serial del certificato di chi ha firmato
 	#	negli elementi 1,3,5, ecc. (elementi dispari) l'UTCTIME in formato normalizzato con il locale impostato
-	OLD_IFS=$IFS
-	IFS=$'\n' 
-	timestamps_array=($(getIssuerTimestamps "$1"))
-	certs_orig_array=($(getCertsFields "$1"))
-	IFS=$OLD_IFS
-	for (( i=0; i<${#timestamps_array[*]}; i=$(($i+2)) )); do
-          serial_timestamps[${timestamps_array[$i]}]=$i
-	  utctime=${timestamps_array[$(($i+1))]}
-	  utctime=$(getTs "${utctime}")
-	  utctime_hash[$utctime]=${timestamps_array[$i]}
-	done
 	# in certs_orig_array ci sono:
 	#	negli elementi 0,5,10, ecc. (elementi 0 + 5*n) il serial del certificato
 	#	negli elementi 1,6,11, ecc. (elementi 1 + 5*n) l'issue
 	#	negli elementi 2,7,12, ecc. (elementi 2 + 5*n) il notBefore (data di partenza del certificato)
 	#	negli elementi 3,8,13, ecc. (elementi 3 + 5*n) il notAfter (data di scadenza del certificato)
 	#	negli elementi 4,9,14, ecc. (elementi 4 + 5*n) il subject (Nome, cognome, CF, ecc)
-	for (( i=0; i<${#certs_orig_array[*]}; i=$(($i+5)) )); do
-		serial_certs[${certs_orig_array[$i]}]=$i
+	OLD_IFS=$IFS
+	IFS=$'\n' 
+	timestamps_array=($(getIssuerTimestamps "$1"))
+	certs_orig_array=($(getCertsFields "$1"))
+	IFS=$OLD_IFS
+	idx=-1
+	for (( i=0; i<${#timestamps_array[*]}; i=$(($i+2)) )); do
+		idx=$(($idx + 1 ))
+		#serial_timestamps[${timestamps_array[$i]}]=$i
+		utctime=${timestamps_array[$(($i+1))]}
+		utctime=$(getTs "${utctime}")
+		#utctime_hash[$utctime]=${timestamps_array[$i]}
+		utctime_array[$idx]=$utctime
 	done
-	# Debug for certs and timestamps
-	# echo -e "\ntimestamps_array:\n"
-	# echo "${timestamps_array[*]}"
-	# echo -e "\ncerts_orig_array:\n"
-	# echo "${certs_orig_array[*]}"
-	# echo -e "\nserial_timestamps:\n"
-	# for x in "${!serial_timestamps[@]}"; do echo "$x = ${serial_timestamps[$x]}"; done
-	# echo -e "\nserial_certs:\n"
-	# for x in "${!serial_certs[@]}"; do echo "$x = ${serial_certs[$x]}"; done
-	# echo -e "\nutctime_hash:\n"
-	# for x in "${!utctime_hash[@]}"; do echo "$x = ${utctime_hash[$x]}"; done
-	# echo "${!utctime_hash[@]}" | sed -e 's/ /\n/g' |sort -n 
-	# exit
-	# Debug end: for certs and timestamps
 
 	# verify_res: indica se 0 che le firme e i loro timestamp sono corretti; se >0 c'e' un errore
 	verify_res=0
@@ -1065,17 +1147,21 @@ verify() {
 		verify_res=8
 	else
 		idx=-1
-		for utc in $(echo "${!utctime_hash[@]}" | sed -e 's/ /\n/g' | sort -n); do
-			sn=${utctime_hash[$utc]}
+		for utc in $(echo "${utctime_array[@]}" | sed -e 's/ /\n/g' | sort -n); do
+			id_utc=''
+			for i in "${!utctime_array[@]}"; do
+				if [ "${utctime_array[$i]}" = "$utc" ]; then
+					id_utc=$i
+				fi
+			done
+			sn=${timestamps_array[$(($id_utc * 2))]}
 			idx=$(($idx + 1 ))
-			idx_ts=${serial_timestamps[$sn]}
-			idx_cert=${serial_certs[$sn]}
-			timestamp_readable=${timestamps_array[$(( $idx_ts + 1 ))]}
+			timestamp_readable=${timestamps_array[$(( $id_utc * 2 +1 ))]}
 			timestamp=$(getTs "${timestamp_readable}")
-			issuer=${certs_orig_array[$(( $idx_cert + 1 ))]}
-			notbefore=${certs_orig_array[$(( $idx_cert + 2 ))]}
-			notafter=${certs_orig_array[$(( $idx_cert + 3 ))]}
-			subject=${certs_orig_array[$(( $idx_cert + 4 ))]}
+			issuer=${certs_orig_array[$(( $id_utc * 5 + 1 ))]}
+			notbefore=${certs_orig_array[$(( $id_utc * 5 + 2 ))]}
+			notafter=${certs_orig_array[$(( $id_utc * 5 + 3 ))]}
+			subject=${certs_orig_array[$(( $id_utc * 5 + 4 ))]}
 			cn=$(getCn "$subject")
 			cf=$(getCf "$subject")
 			ou=$(getOu "$subject")
@@ -1083,17 +1169,6 @@ verify() {
 			notbefore_ts=$(getTs "${notbefore}")
 			notafter_ts=$(getTs "${notafter}")
 
-			# Debug for summury data
-			# echo -e "serialNumber: $sn"
-			# echo -e "\t idx_ts=$idx_ts, idx_cert=$idx_cert"
-			# echo -e "\t timestamp_readable=$timestamp_readable, timestamp=$timestamp"
-			# echo -e "\t issuer=$issuer"
-			# echo -e "\t notBefore=$notbefore (ts=$notbefore_ts), notAfter=$notafter (ts=$notafter_ts)"
-			# echo -e "\t subject=$subject"
-			# echo -e "\t --------"
-			# echo -e "\t cn=$cn, cf=$cf, ou=$ou"
-			# echo -e "\t issuer_cn=$issuer_cn"
-			# Debug end for summary data
 			verify_res=0
 			if [ $R = "0" ]; then
 				verify_msg[$idx]="$(_msg 'openssl:verifica:ok:ok' "${cn}" "${timestamp_readable}" "${ou}" "${cf}" "${issuer_cn}" "${notbefore}" "${notafter}")"
@@ -1299,21 +1374,50 @@ getHelp() {
 	display "$(_msg 'p7m:usage' "$1")"	
 }
 
+# inizialize()
+# --------------------------
+# Description: Inizialize the enviroenment
+# Input params: <none>
+# Phrases key used: 
+# Environment variables used: CONF_DIR, L, DWN, OPEN, XDIALOG
+# Output: <none>
+# Return value: 0
+# --------------------------
+inizialize() {
+	if [ -n "${CONF_DIR}" -a ! -d "${CONF_DIR}" ]; then
+		mkdir -p "${CONF_DIR}"
+	fi
+	if [ -f "${CONF_DIR}/p7m_config" ]; then
+		# in questo file puoi modificare i messaggi ed aggiungere lingue, i vari programmi da utilizzare ed altro
+		source "${CONF_DIR}/p7m_config"
+	fi
+	L=$(get_lang_message)
+	populate_msg
+	DWN=$(find_command ${DWL_ORDER})
+	OPEN=$(find_command ${OPEN_ORDER})
+	XDIALOG=$(find_command ${DIALOG_ORDER})
+	return 0
+}
+
 ### START MAIN ###
 
-if [ -n "${CONF_DIR}" -a ! -d "${CONF_DIR}" ]; then
-	mkdir -p "${CONF_DIR}"
-fi
-if [ -f "${CONF_DIR}/p7m_config" ]; then
-	# in questo file puoi modificare i messaggi ed aggiungere lingue, i vari programmi da utilizzare ed altro
-	source "${CONF_DIR}/p7m_config"
-fi
+#if [ -n "${CONF_DIR}" -a ! -d "${CONF_DIR}" ]; then
+#	mkdir -p "${CONF_DIR}"
+#fi
+#if [ -f "${CONF_DIR}/p7m_config" ]; then
+#	# in questo file puoi modificare i messaggi ed aggiungere lingue, i vari programmi da utilizzare ed altro
+#	source "${CONF_DIR}/p7m_config"
+#fi
+#
+## Set same environment variables
+#L=$(get_lang_message)
+#DWN=$(find_command ${DWL_ORDER})
+#OPEN=$(find_command ${OPEN_ORDER})
+#XDIALOG=$(find_command ${DIALOG_ORDER})
 
-# Set same environment variables
-L=$(get_lang_message)
-DWN=$(find_command ${DWL_ORDER})
-OPEN=$(find_command ${OPEN_ORDER})
-XDIALOG=$(find_command ${DIALOG_ORDER})
+# Global variable declaration
+declare L DWN OPEN XDIALOG
+inizialize
 
 while getopts ":pvcdxgh" arg; do
   case $arg in
