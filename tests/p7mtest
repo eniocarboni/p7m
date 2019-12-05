@@ -1,0 +1,6 @@
+#! /bin/bash
+
+T_dir=$(dirname $(realpath $0))
+for t in ${T_dir}/t/*.t; do 
+  $t
+done

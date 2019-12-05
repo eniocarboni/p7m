@@ -1401,25 +1401,10 @@ inizialize() {
 
 ### START MAIN ###
 
-#if [ -n "${CONF_DIR}" -a ! -d "${CONF_DIR}" ]; then
-#	mkdir -p "${CONF_DIR}"
-#fi
-#if [ -f "${CONF_DIR}/p7m_config" ]; then
-#	# in questo file puoi modificare i messaggi ed aggiungere lingue, i vari programmi da utilizzare ed altro
-#	source "${CONF_DIR}/p7m_config"
-#fi
-#
-## Set same environment variables
-#L=$(get_lang_message)
-#DWN=$(find_command ${DWL_ORDER})
-#OPEN=$(find_command ${OPEN_ORDER})
-#XDIALOG=$(find_command ${DIALOG_ORDER})
-
 # Global variable declaration
 declare L DWN OPEN XDIALOG
-inizialize
 
-while getopts ":pvcdxgh" arg; do
+while getopts ":pvcdxght" arg; do
   case $arg in
       p)
 	 op='p'
@@ -1439,183 +1424,189 @@ while getopts ":pvcdxgh" arg; do
       g)
 	  out='g'  
       ;;
+      t)
+	  op='test'
+      ;;
       h)
 	  op='h'
       ;;
   esac
 done
-if [ "$op" = 'h' ]; then
-	getHelp " "
-	exit 0
-fi
-if [ "$op" = 'p' ]; then
-	getcert
-	R=$?
-	exit $R
-fi
-shift $(($OPTIND - 1))
-file=$@
-file=$(getP7mFile "$file")
-if [ -z "$file" ]; then
-	getHelp "$(_msg 'errore:file:ext')"
-  exit 1
-fi
-if [ ! -f "$file" ]; then
-	getHelp "$(_msg 'errore:file:non_esiste') ($file)"
-  exit 2
-fi
-orig_path=$(dirname "$file")
-name_file=$(echo ${file} | tr '[ A-Z]' '[_a-z]')
-b1=$(basename "$name_file")
-b2=$(basename "$name_file" .p7m)
-if [ "$b1" = "$b2" ]; then
-	getHelp "$(_msg 'errore:file:ext')"
-  exit 3
-fi
-if [ ! `which openssl 2>/dev/null` ]; then
-	err "$(_msg 'eseguibile:openssl:non_trovato')" "$(_msg 'it:titolo:openssl')"
-  exit 4
-fi
-
-declare -a out_continue_array
-declare -a unlink_files
-checkfile="$file"
-# p7m_attach: [Variabile  globale] Nome del file estratta dal .p7m
-p7m_attach=""
-level=-1
-op_continue=1
-op_continue_ret=0
-op_title=''
-if [ $(is_p7m "$checkfile") -ne 0 ]; then 
-	op_continue=0
-	out_continue_array[0]=$(_msg 'errore:file:ext:bad')
-fi
-while [ $op_continue_ret -eq 0 -a $(is_p7m "$checkfile") -eq 0 ]; do
-	level=$(( $level + 1 ))
-	P7MTYPE=$(getP7mType "$checkfile")
-	# Se necessario converto da base64
-	myfile_uu=$(from_base64_to_p7m "$checkfile")
-	unlink_files+=("$myfile_uu")
-	# Se necessario converto il file da PEM a DER
-	myfile=$(from_pem_to_der "$myfile_uu")
-	unlink_files+=("$myfile")
-	
-	if [ $level -eq 0 ]; then 
-		getnewcert
+if [ "$op" != 'test' ]; then
+	inizialize
+	if [ "$op" = 'h' ]; then
+		getHelp " "
+		exit 0
 	fi
-	if [ "$op" = 'v' ]; then
+	if [ "$op" = 'p' ]; then
+		getcert
+		R=$?
+		exit $R
+	fi
+	shift $(($OPTIND - 1))
+	file=$@
+	file=$(getP7mFile "$file")
+	if [ -z "$file" ]; then
+		getHelp "$(_msg 'errore:file:ext')"
+	  exit 1
+	fi
+	if [ ! -f "$file" ]; then
+		getHelp "$(_msg 'errore:file:non_esiste') ($file)"
+	  exit 2
+	fi
+	orig_path=$(dirname "$file")
+	name_file=$(echo ${file} | tr '[ A-Z]' '[_a-z]')
+	b1=$(basename "$name_file")
+	b2=$(basename "$name_file" .p7m)
+	if [ "$b1" = "$b2" ]; then
+		getHelp "$(_msg 'errore:file:ext')"
+	  exit 3
+	fi
+	if [ ! `which openssl 2>/dev/null` ]; then
+		err "$(_msg 'eseguibile:openssl:non_trovato')" "$(_msg 'it:titolo:openssl')"
+	  exit 4
+	fi
+	
+	declare -a out_continue_array
+	declare -a unlink_files
+	checkfile="$file"
+	# p7m_attach: [Variabile  globale] Nome del file estratta dal .p7m
+	p7m_attach=""
+	level=-1
+	op_continue=1
+	op_continue_ret=0
+	op_title=''
+	if [ $(is_p7m "$checkfile") -ne 0 ]; then 
 		op_continue=0
-		out_continue_array[$level]=$(verify "$myfile")
-		op_continue_ret=$?
-		if [ $op_continue_ret -eq 0 ]; then
-			if [ -z "$op_title" ]; then
-				op_title="openssl:verifica:title:ok"
-			fi
-		else
-			op_title="openssl:verifica:title:non_ok"
+		out_continue_array[0]=$(_msg 'errore:file:ext:bad')
+	fi
+	while [ $op_continue_ret -eq 0 -a $(is_p7m "$checkfile") -eq 0 ]; do
+		level=$(( $level + 1 ))
+		P7MTYPE=$(getP7mType "$checkfile")
+		# Se necessario converto da base64
+		myfile_uu=$(from_base64_to_p7m "$checkfile")
+		unlink_files+=("$myfile_uu")
+		# Se necessario converto il file da PEM a DER
+		myfile=$(from_pem_to_der "$myfile_uu")
+		unlink_files+=("$myfile")
+		
+		if [ $level -eq 0 ]; then 
+			getnewcert
 		fi
-	elif [ "$op" = 'c' ]; then
-		op_continue=0
-		out_continue_array[$level]=$(cert "$myfile")
-		op_continue_ret=$?
-		op_title="titolo:openssl:cert"
-	elif [ "$op" = 'd' ]; then
-		op_continue=0
-		out_continue_array[$level]=$(debug_pkcs7 "$myfile")
-		op_continue_ret=$?
-		op_title="titolo:openssl:asn1parse"
-	elif [ -f "${CONF_DIR}/ca.pem" -a -s "${CONF_DIR}/ca.pem" ]; then
-		errv=$(verify "$myfile")
-		codev=$?
-		if [ $codev != "0" ]; then
-			warn_yesno "$(_msg 'openssl:verifica:errore:continuo')" "" "$(_msg 'titolo:openssl')"
+		if [ "$op" = 'v' ]; then
+			op_continue=0
+			out_continue_array[$level]=$(verify "$myfile")
+			op_continue_ret=$?
+			if [ $op_continue_ret -eq 0 ]; then
+				if [ -z "$op_title" ]; then
+					op_title="openssl:verifica:title:ok"
+				fi
+			else
+				op_title="openssl:verifica:title:non_ok"
+			fi
+		elif [ "$op" = 'c' ]; then
+			op_continue=0
+			out_continue_array[$level]=$(cert "$myfile")
+			op_continue_ret=$?
+			op_title="titolo:openssl:cert"
+		elif [ "$op" = 'd' ]; then
+			op_continue=0
+			out_continue_array[$level]=$(debug_pkcs7 "$myfile")
+			op_continue_ret=$?
+			op_title="titolo:openssl:asn1parse"
+		elif [ -f "${CONF_DIR}/ca.pem" -a -s "${CONF_DIR}/ca.pem" ]; then
+			errv=$(verify "$myfile")
+			codev=$?
+			if [ $codev != "0" ]; then
+				warn_yesno "$(_msg 'openssl:verifica:errore:continuo')" "" "$(_msg 'titolo:openssl')"
+				if [ $? != 0 ]; then
+					del_oldtmp_file "${unlink_files[*]}"
+					exit 5
+				fi
+			fi
+		fi
+		checkfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
+		err=`openssl ${P7MTYPE} -verify -noverify -in "$myfile" -inform DER -out "$checkfile" 2>&1`
+		code=$?
+		unlink_files+=("$checkfile")
+		if [ $code != "0" ]; then
+			warn_yesno "$(_msg 'openssl:verifica:errore:continuo')" "$err" "$(_msg 'titolo:openssl')"
 			if [ $? != 0 ]; then
 				del_oldtmp_file "${unlink_files[*]}"
 				exit 5
 			fi
 		fi
-	fi
-	checkfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
-	err=`openssl ${P7MTYPE} -verify -noverify -in "$myfile" -inform DER -out "$checkfile" 2>&1`
-	code=$?
-	unlink_files+=("$checkfile")
-	if [ $code != "0" ]; then
-		warn_yesno "$(_msg 'openssl:verifica:errore:continuo')" "$err" "$(_msg 'titolo:openssl')"
-		if [ $? != 0 ]; then
-			del_oldtmp_file "${unlink_files[*]}"
-			exit 5
-		fi
-	fi
-done
-if [ $op_continue -eq 0 ]; then
-	declare -a out_msg
-	indent=''
-	for (( i=$(( ${#out_continue_array[*]} -1 )); i>=0; i=$(($i-1)) )); do
-		level=$(( ${#out_continue_array[*]} -1 - $i ))
-		if [ $level -gt 0 ]; then 
-			indent="$indent    "
-			out_msg[$level]=$(echo -e "\n${DOWN_RIGHT_ARROW} ** livello $level **\n\n${out_continue_array[$i]}" | sed "s/^/$indent/g")"\n"
-		elif [ ${#out_continue_array[*]} -gt 1 ]; then
-			out_msg[$level]=$(echo "\n ** livello $level **\n\n${out_continue_array[$i]}")
-		else
-			out_msg[$level]=$(echo "\n${out_continue_array[$i]}")
-
-		fi
 	done
-	display "${out_msg[*]}" "$(_msg ${op_title})"
+	if [ $op_continue -eq 0 ]; then
+		declare -a out_msg
+		indent=''
+		for (( i=$(( ${#out_continue_array[*]} -1 )); i>=0; i=$(($i-1)) )); do
+			level=$(( ${#out_continue_array[*]} -1 - $i ))
+			if [ $level -gt 0 ]; then 
+				indent="$indent    "
+				out_msg[$level]=$(echo -e "\n${DOWN_RIGHT_ARROW} ** livello $level **\n\n${out_continue_array[$i]}" | sed "s/^/$indent/g")"\n"
+			elif [ ${#out_continue_array[*]} -gt 1 ]; then
+				out_msg[$level]=$(echo "\n ** livello $level **\n\n${out_continue_array[$i]}")
+			else
+				out_msg[$level]=$(echo "\n${out_continue_array[$i]}")
+	
+			fi
+		done
+		display "${out_msg[*]}" "$(_msg ${op_title})"
+		del_oldtmp_file "${unlink_files[*]}"
+		exit $op_continue_ret;
+	fi
+	if [ "$checkfile" = "$file" ]; then
+		exit 2
+	fi
+	newfile=$checkfile
+	t=`file -b --mime-type "$newfile"`
+	if [ "$t" = 'text/xml' ]; then
+		t='text/xml|application/xml';
+	fi
+	p7m_attach=${newfile}
+	nf="${b2}"
+	if [ -n "$t" -a -f "${MIMETYPES}" ]; then
+		read -a exts <<<$(grep -E "$t" "${MIMETYPES}")
+		if [ -n "${exts[1]}" ]; then
+			b3=$(basename "$b2" ".${exts[1]}")
+			if [ "$b3" = "$b2" ]; then
+				nf="${b2}.${exts[1]}"
+			else
+				nf="${b2}"
+			fi
+			nf=$(echo ${nf} | tr '[ A-Z]' '[_a-z]')
+			p7m_attach=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX-${nf}")
+			mv "${newfile}" "${p7m_attach}"
+		fi
+	fi
+	# Cancellazione file temporanei
 	del_oldtmp_file "${unlink_files[*]}"
-	exit $op_continue_ret;
-fi
-if [ "$checkfile" = "$file" ]; then
-	exit 2
-fi
-newfile=$checkfile
-t=`file -b --mime-type "$newfile"`
-if [ "$t" = 'text/xml' ]; then
-	t='text/xml|application/xml';
-fi
-p7m_attach=${newfile}
-nf="${b2}"
-if [ -n "$t" -a -f "${MIMETYPES}" ]; then
-	read -a exts <<<$(grep -E "$t" "${MIMETYPES}")
-	if [ -n "${exts[1]}" ]; then
-		b3=$(basename "$b2" ".${exts[1]}")
-		if [ "$b3" = "$b2" ]; then
-			nf="${b2}.${exts[1]}"
+	IS_FATTURA=""
+	p7mplugin "${p7m_attach}"
+	if [ "$op" == 'x' ]; then
+		if [ -e "${orig_path}/${nf}" ]; then
+			warn_yesno "$(_msg 'file:sovrascivere') ${orig_path}/${nf}" "" "$(_msg 'titolo:p7m')"
+			if [ $? != 0 ]; then
+				exit 2
+			fi
+		fi
+		err=$( mv "${p7m_attach}" "${orig_path}/${nf}" )
+		if [ $? != "0" ]; then
+			err "$(_msg 'file:diritti:scrittura') ${orig_path}\n$(_msg 'file:diritti:scrittura:alternativa') ${p7m_attach}"
 		else
-			nf="${b2}"
+			notify "$(_msg 'openssl:estrazione:percorso') '${orig_path}/${nf}'\n[tipo: $t]"
 		fi
-		nf=$(echo ${nf} | tr '[ A-Z]' '[_a-z]')
-		p7m_attach=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX-${nf}")
-		mv "${newfile}" "${p7m_attach}"
+	elif [ -n "${OPEN}" ]; then
+		# display "$(_msg 'eseguibile:open_file:non_trovato') ${p7m_attach}"
+		${OPEN} "${p7m_attach}"
+		exit 0
+	elif [ -t 1 -a -n "$IS_FATTURA" ]; then
+		more "${p7m_attach}"
+	else 
+		display "$(_msg 'eseguibile:open_file:non_trovato')  '${p7m_attach}'\n[tipo: $t]"
+		exit 0
 	fi
-fi
-# Cancellazione file temporanei
-del_oldtmp_file "${unlink_files[*]}"
-IS_FATTURA=""
-p7mplugin "${p7m_attach}"
-if [ "$op" == 'x' ]; then
-	if [ -e "${orig_path}/${nf}" ]; then
-		warn_yesno "$(_msg 'file:sovrascivere') ${orig_path}/${nf}" "" "$(_msg 'titolo:p7m')"
-		if [ $? != 0 ]; then
-			exit 2
-		fi
-	fi
-	err=$( mv "${p7m_attach}" "${orig_path}/${nf}" )
-	if [ $? != "0" ]; then
-		err "$(_msg 'file:diritti:scrittura') ${orig_path}\n$(_msg 'file:diritti:scrittura:alternativa') ${p7m_attach}"
-	else
-		notify "$(_msg 'openssl:estrazione:percorso') '${orig_path}/${nf}'\n[tipo: $t]"
-	fi
-elif [ -n "${OPEN}" ]; then
-	# display "$(_msg 'eseguibile:open_file:non_trovato') ${p7m_attach}"
-	${OPEN} "${p7m_attach}"
-	exit 0
-elif [ -t 1 -a -n "$IS_FATTURA" ]; then
-	more "${p7m_attach}"
-else 
-	display "$(_msg 'eseguibile:open_file:non_trovato')  '${p7m_attach}'\n[tipo: $t]"
-	exit 0
 fi
 
 # ########################################################################

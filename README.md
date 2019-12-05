@@ -22,6 +22,7 @@ Questo script funziona sotto linux sia in modalità testuale che grafica (usare 
   p7m -c [-g] [-h] <file.p7m>   # Per i certificati
   p7m -d [-g] [-h] <file.p7m>   # Per il debug (esperti)
   p7m -p [-h]                   # Per scaricare la nuova CA
+  p7m -t                        # Per test o per poterla usare come libreria (source p7m -t)
 ```
 
 **dove**
