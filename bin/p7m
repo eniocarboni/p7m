@@ -53,13 +53,13 @@ declare -a msgKeyDownloadurl msgValDownloadurl_it msgValDownloadurl_en
 declare -a msgKeyFile mgsValFile_it msgValFile_en
 declare -a msgKeyUsage msgValUsage_it msgValUsage_en
 msgKeyTitle=(
-"titolo:p7m" "titolo:seleziona:p7m" "titolo:openssl" "titolo:openssl:verify" "titolo:openssl:cert" "titolo:openssl:asn1parse" "titolo:download" "titolo:cert" "titolo:errore" "titolo:attenzione" "titolo:dettagli")
-msgValTitle_it=("P7M" "Seleziona un p7m" "Openssl" "Openssl verifica firma" "Openssl Certificato" "Openssl debug" "Download" "Cert" "Errore" "Attenzione" "Dettagli")
-msgValTitle_en=("P7M" "Select a p7m file" "Openssl" "Openssl verifica firma" "Openssl Certificato" "Openssl debug" "Download" "Cert" "Error" "Warning" "Details")
+"titolo:p7m" "titolo:seleziona:p7m" "titolo:openssl" "titolo:openssl:verify" "titolo:openssl:cert" "titolo:openssl:asn1parse" "titolo:download" "titolo:cert" "titolo:errore" "titolo:attenzione" "titolo:dettagli" "titolo:copyxslfile")
+msgValTitle_it=("P7M" "Seleziona un p7m" "Openssl" "Openssl verifica firma" "Openssl Certificato" "Openssl debug" "Download" "Cert" "Errore" "Attenzione" "Dettagli" "copyxslfile")
+msgValTitle_en=("P7M" "Select a p7m file" "Openssl" "Openssl verifica firma" "Openssl Certificato" "Openssl debug" "Download" "Cert" "Error" "Warning" "Details" "copyxslfile")
 
-msgKeyError=("errore:file:ext" "errore:file:ext:bad" "errore:file:non_esiste" "errore:file:conf_dir")
-msgValError_it=("Bisogna passare un file con estensione .p7m come parametro" "Formato del file p7m non riconosciuto." "Non esiste il file. Controllare meglio" "Impossibile creare la directory .p7m nella tua HOME")
-msgValError_en=("You must pass a .p7m file as a parameter" "Bad file p7m format." "There is no file. Check better" "Unable to create the .p7m directory in your HOME")
+msgKeyError=("errore:file:ext" "errore:file:ext:bad" "errore:file:non_esiste" "errore:file:conf_dir" "errore:fatturael:versione")
+msgValError_it=("Bisogna passare un file con estensione .p7m come parametro" "Formato del file p7m non riconosciuto." "Non esiste il file. Controllare meglio" "Impossibile creare la directory .p7m nella tua HOME" "versione '%s' fattura elettronica: non riconosciuta")
+msgValError_en=("You must pass a .p7m file as a parameter" "Bad file p7m format." "There is no file. Check better" "Unable to create the .p7m directory in your HOME" "version '%s' fattura elettronica: not recognized")
 
 msgKeyOpenssl=("openssl:estrazione:errore" "openssl:verifica:errore:formato" "openssl:verifica:title:ok" "openssl:verifica:title:non_ok" "openssl:verifica:ok:ok" "openssl:verifica:non_ok:ok" "openssl:verifica:non_ok_scaduto:ok" "openssl:verifica:non_ok_scaduto:non_ok" "openssl:verifica:non_ok:non_ok" "openssl:verifica:errore:continuo" "openssl:verifica:timestamp:mancante" "openssl:cert:errore" "openssl:cert:validita" "openssl:asn1parse:error" "openssl:asn1parse:timestamp" "openssl:estrazione:percorso")
 msgValOpenssl_it=(
@@ -764,10 +764,10 @@ getIssuerTimestamps() {
 	local ret=$?
 	if [ "${P7MTYPE}" = "smime" ]; then
 		# smime
-		echo "$info" | sed -n '/issuer_and_serial:/,/UTCTIME:/p'| grep -E ' serial:|UTCTIME:'| sed -e 's/^ *serial: *//' -e 's/^ *UTCTIME: *//'
+		echo "$info" | sed -e 's/GENERALIZEDTIME/UTCTIME/g' | sed -n '/issuer_and_serial:/,/UTCTIME:/p'| grep -E ' serial:|UTCTIME:'| sed -e 's/^ *serial: *//' -e 's/^ *UTCTIME: *//'
 	else
 		# cms
-		echo "$info" | sed -n '/issuerAndSerialNumber:/,/UTCTIME:/p' | grep -E ' serialNumber:|UTCTIME:' | sed -e 's/^ *serialNumber: *//' -e 's/^ *UTCTIME: *//'
+		echo "$info" | sed -e 's/GENERALIZEDTIME/UTCTIME/g' | sed -n '/issuerAndSerialNumber:/,/UTCTIME:/p' | grep -E ' serialNumber:|UTCTIME:' | sed -e 's/^ *serialNumber: *//' -e 's/^ *UTCTIME: *//'
 	fi
 	return $ret
 }
@@ -1292,13 +1292,18 @@ copyxslfile() {
 	local dir=$2
 	local xsl url sec_old sec_now
 	getxslenvs $version
-	if [ ! -f "${CONF_DIR}/$xsl_file" -o ! -s "${CONF_DIR}/$xsl_file" ]; then
-		notify "$(_msg 'download_url' $xsl_file)" "$(_msg 'titolo:download')"
-		download "$xsl_url" "${CONF_DIR}/$xsl_file"
+	if [ -n "$xsl_file" ]; then
+		if [ ! -f "${CONF_DIR}/$xsl_file" -o ! -s "${CONF_DIR}/$xsl_file" ]; then
+			notify "$(_msg 'download_url' $xsl_file)" "$(_msg 'titolo:download')"
+			download "$xsl_url" "${CONF_DIR}/$xsl_file"
+		fi
+		if [ -f "${CONF_DIR}/$xsl_file" -a -s "${CONF_DIR}/$xsl_file" ]; then
+			cp "${CONF_DIR}/$xsl_file" "$dir/$xsl_file"
+		fi
+	else
+		notify "$(_msg 'errore:fatturael:versione' $version)" "$(_msg 'titolo:copyxslfile')"
 	fi
-	if [ -e "${CONF_DIR}/$xsl_file" ]; then
-		cp "${CONF_DIR}/$xsl_file" "$dir/$xsl_file"
-	fi
+
 }
 
 # p7mplugin()
