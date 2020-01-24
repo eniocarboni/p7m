@@ -36,14 +36,20 @@ T_End() {
 
 T_Test() {
 	local check="$1"
+	local msg_ok=""
 	local msg_err=""
 	if [ -n "$2" ]; then
-		msg_err=" [$2]"
+		msg_ok=" $2"
+		msg_err="$2"
 	fi
+	if [ -n "$3" ]; then
+		msg_err="$msg_err $3"
+	fi
+	msg_err=" [$msg_err]"
 	T_test=$(( $T_test + 1 ))
 	if [ $check -eq '0' ]; then
 	  T_OK=$(($T_OK + 1))
-	  echo -e "\ttest $T_test/$T_TOT ${TC_OK}OK${TC_NC}"
+	  echo -e "\ttest $T_test/$T_TOT ${TC_OK}OK${TC_NC} ${msg_ok}"
 	else
 	  T_ERR=$(($T_ERR + 1))
 	  echo -e "\ttest $T_test/$T_TOT ${TC_ERR}ERR${msg_err}${TC_NC}"
