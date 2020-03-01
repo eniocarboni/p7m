@@ -12,7 +12,7 @@ OPEN_ORDER="xdg-open gvfs-open gnome-open"
 # CA_OLD_TIME_SEC: Numero di secondi oltre i quali verra' scaricato nuovamente il CA dal sito del CNIPA (def 15gg)
 CA_OLD_TIME_SEC=1296000
 # XML_CERTS: url del cnipa per il portafogli dei certificati di validità in xml
-XML_CERTS='https://applicazioni.cnipa.gov.it/TSL/_IT_TSL_signed.xml'
+XML_CERTS='https://eidas.agid.gov.it/TL/TSL-IT.xml'
 # ROTATE_NUMBER: Numero di rotazioni da mantenere per alcuni file di configurazione (compreso il CA del CNIPA)
 ROTATE_NUMBER=10
 # MIMETYPES: Percorso al file mime.types (def. /etc/mime.types)
