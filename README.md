@@ -43,7 +43,7 @@ Questo script funziona sotto linux sia in modalità testuale che grafica (usare 
   Come finestre di dialogo vengono prese in considerazione i comandi **kdialog** se presente, altrimenti **zenity** ed infine **xmessage**.
   L'ordine di ricerca può essere modificato tramite file di configurazione impostando la variabile *DIALOG_ORDER*
 
-Se nessuno dei parametri ==-v, -c o -d== viene utilizzato **p7m** controlla e verifica la firma ed estrae l'allegato visualizzandolo con il programma associato dal suo mime-type (p7m viewer).
+Se nessuno dei parametri **-v, -c o -d** viene utilizzato **p7m** controlla e verifica la firma ed estrae l'allegato visualizzandolo con il programma associato dal suo mime-type (p7m viewer).
 Per aprire il programma associato ad uno specifico mime type viene utilizzato il comando **xdg-open** se presente, altrimenti **gvfs-open** ed infine **gnome-open**.
 Se nessuno dei precedenti comandi esiste viene visualizzato un messaggio con l'indicazione del percorso esatto del file estratto.
 
@@ -96,11 +96,17 @@ Se non sono state create in precedenza azioni personalizzate di Thunar si può s
 
       This file is part of p7m.
 
-      p7m is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+      p7m is free software: you can redistribute it and/or modify it under the 
+      terms of the GNU General Public License as published by the Free Software 
+      Foundation, either version 3 of the License, or (at your option) any later
+      version.
 
-      p7m is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+      p7m is distributed in the hope that it will be useful, but WITHOUT ANY 
+      WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+      FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more 
+      details.
 
-      You should have received a copy of the GNU General Public License along with p7m.  If not, see <http://www.gnu.org/licenses/>.
-
+      You should have received a copy of the GNU General Public License along 
+      with p7m.  If not, see <http://www.gnu.org/licenses/>.
 
 
