@@ -911,9 +911,9 @@ if [ -s ${CONF_DIR}/ca.pem.partial ]; then
 else
 	rm -f ${CONF_DIR}/ca.pem.partial
 	if [ "$1" ]; then
-		notify "$(_msg 'download_url:ca:non_ok')\n\n[logs]:\n `cat ${CONF_DIR}/.dwn.log`" "$(_msg 'titolo:cert')"
+		notify "$(_msg 'download_url:ca:non_ok')\n\n[logs]:\n `cat "${CONF_DIR}/.dwn.log"`" "$(_msg 'titolo:cert')"
 	else
-		err_detail "$(_msg 'download_url:ca:non_ok')" "'[logs]:\n `cat ${CONF_DIR}/.dwn.log`'" "$(_msg 'titolo:cert')"
+		err_detail "$(_msg 'download_url:ca:non_ok')" "'[logs]:\n `cat "${CONF_DIR}/.dwn.log"`'" "$(_msg 'titolo:cert')"
 	fi
 	return 2
 fi
@@ -935,7 +935,7 @@ from_base64_to_p7m() {
 	local newp7m=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
 	# check if in base64 format to convert in original p7m
 	# base64 one line
-	read -d ' ' md5orig <<< $(cat ${file_pem} | sed 's/\r//g'|  while read line; do echo -n "$line"; done | openssl md5 -r)
+	read -d ' ' md5orig <<< $(cat "${file_pem}" | sed 's/\r//g'|  while read line; do echo -n "$line"; done | openssl md5 -r)
 	openssl base64 -A -d -in "$file_pem" -out "$newp7m" 2>&1
 	read -d ' ' md5after <<< $(openssl base64 -A -in "$newp7m" -out - | sed 's/\r//g'|  while read line; do echo -n "$line"; done | openssl md5 -r)
 	if [ -s "$newp7m" -a "${md5orig}" = "${md5after}" ]; then
