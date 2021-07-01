@@ -64,7 +64,7 @@ mv p7m-master p7m
 ## Integrazione con il file manager
 Copiare la directory bin .local e .config nella home
 ```
-cd $HOME/p7m && cp -a {bin, .local, .config} $HOME
+cd $HOME/p7m && cp -a {bin,.local,.config} $HOME
 # la directory p7m non serve più e si può eliminare
 # rmdir -rf p7m
 ```
