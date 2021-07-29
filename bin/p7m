@@ -1330,12 +1330,15 @@ copyxslfile() {
 # --------------------------
 p7mplugin() {
 	local file=$1
+	local testif_fatturaelettronica=$(grep -E '<FatturaElettronicaHeader' "$file")
 	local t=`file -b --mime-type "$file"`
 	if [ -n "$t" -a "$t" = 'application/xml' ]; then
 		t='text/xml'
 	fi
+	if [ -n "$testif_fatturaelettronica" ]; then
+		t='text/xml'
+	fi
 	local version
-	local testif_fatturaelettronica=$(grep -E '<FatturaElettronicaHeader' "$file")
 	local tag_FatturaElettronica=$(grep -E '<(.*:)?FatturaElettronica ' "$file")
 	local testif_xmlstylesheet=$(grep -E 'xml-stylesheet' $file)
 	if [ "$t" = 'text/xml' -a -n "$testif_fatturaelettronica" ]; then
@@ -1578,6 +1581,18 @@ if [ "$op" != 'test' ]; then
 	t=`file -b --mime-type "$newfile"`
 	if [ "$t" = 'text/xml' ]; then
 		t='text/xml|application/xml';
+	fi
+	# test bad text/plain when it is Italian Fattura elettronica whiout xml header
+	if [ "$t" = 'text/plain' ]; then
+		grep -q 'FatturaElettronica .*http://ivaservizi.agenziaentrate.gov.it/docs/xsd.*versione=' "$newfile"
+		test1=$?
+		grep -q '<FatturaElettronicaHeader>' "$newfile"
+		test2=$?
+		grep -q '<FatturaElettronicaBody>' "$newfile"
+		test3=$?
+		if [ $test1 = "0" -a $test2 = "0" -a $test3 = "0" ]; then
+			t='text/xml|application/xml';
+		fi
 	fi
 	p7m_attach=${newfile}
 	nf="${b2}"
