@@ -36,10 +36,11 @@ BPurple='\033[1;35m'
 BRed='\033[1;31m'
 NC='\033[0m' # No Color
 # Fattura Elettronica PA
+# La versione 1.1 non e' piu' presente su www.fatturapa.gov.it quindi uso un mio gist per ora
 XSL_V11="fatturapa_v1.1.xsl"
-XSL_V11_URL="https://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.1/fatturapa_v1.1.xsl"
+XSL_V11_URL="https://gist.githubusercontent.com/eniocarboni/f9098a08abf03eefe632755aacf7f10b/raw/69f003ca80283f374aabaf42b3c4477941fa2bab/fatturapa_v1.1.xsl"
 XSL_V12="fatturapa_v1.2.1.xsl"
-XSL_V12_URL="https://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2.1/fatturaPA_v1.2.1.xsl"
+XSL_V12_URL="https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.2.1/Foglio_di_stile_fatturaPA_v1.2.1.xsl"
 # XSL_OLD_TIME_SEC: after that second the xsl file will be download
 XSL_OLD_TIME_SEC=1296000
 # ------------------------------------------------------------------------
