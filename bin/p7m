@@ -1477,6 +1477,7 @@ if [ "$op" != 'test' ]; then
 	name_file=$(echo ${file} | tr '[ A-Z]' '[_a-z]')
 	b1=$(basename "$name_file")
 	b2=$(basename "$name_file" .p7m)
+	b2_orig=$(basename "$file" .p7m)
 	if [ "$b1" = "$b2" ]; then
 		getHelp "$(_msg 'errore:file:ext')"
 	  exit 3
@@ -1601,11 +1602,9 @@ if [ "$op" != 'test' ]; then
 		read -a exts <<<$(grep -E "$t" "${MIMETYPES}")
 		if [ -n "${exts[1]}" ]; then
 			b3=$(basename "$b2" ".${exts[1]}")
-			if [ "$b3" = "$b2" ]; then
-				nf="${b2}.${exts[1]}"
-			else
-				nf="${b2}"
-			fi
+			nf="${b3}.${exts[1]}"
+			b2_orig=$(basename "$b2_orig" ".${exts[1]}")
+			b2_orig="$b2_orig.${exts[1]}"
 			nf=$(echo ${nf} | tr '[ A-Z]' '[_a-z]')
 			p7m_attach=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX-${nf}")
 			mv "${newfile}" "${p7m_attach}"
@@ -1616,17 +1615,17 @@ if [ "$op" != 'test' ]; then
 	IS_FATTURA=""
 	p7mplugin "${p7m_attach}"
 	if [ "$op" == 'x' ]; then
-		if [ -e "${orig_path}/${nf}" ]; then
-			warn_yesno "$(_msg 'file:sovrascivere') ${orig_path}/${nf}" "" "$(_msg 'titolo:p7m')"
+		if [ -e "${orig_path}/${b2_orig}" ]; then
+			warn_yesno "$(_msg 'file:sovrascivere') ${orig_path}/${b2_orig}" "" "$(_msg 'titolo:p7m')"
 			if [ $? != 0 ]; then
 				exit 2
 			fi
 		fi
-		err=$( mv "${p7m_attach}" "${orig_path}/${nf}" )
+		err=$( mv "${p7m_attach}" "${orig_path}/${b2_orig}" )
 		if [ $? != "0" ]; then
 			err "$(_msg 'file:diritti:scrittura') ${orig_path}\n$(_msg 'file:diritti:scrittura:alternativa') ${p7m_attach}"
 		else
-			notify "$(_msg 'openssl:estrazione:percorso') '${orig_path}/${nf}'\n[tipo: $t]"
+			notify "$(_msg 'openssl:estrazione:percorso') '${orig_path}/${b2_orig}'\n[tipo: $t]"
 		fi
 	elif [ -n "${OPEN}" ]; then
 		# display "$(_msg 'eseguibile:open_file:non_trovato') ${p7m_attach}"
