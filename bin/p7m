@@ -1599,7 +1599,7 @@ if [ "$op" != 'test' ]; then
 	p7m_attach=${newfile}
 	nf="${b2}"
 	if [ -n "$t" -a -f "${MIMETYPES}" ]; then
-		read -a exts <<<$(grep -E "$t" "${MIMETYPES}")
+		read -a exts <<<$(grep -E "^($t)\s" "${MIMETYPES}")
 		if [ -n "${exts[1]}" ]; then
 			b3=$(basename "$b2" ".${exts[1]}")
 			nf="${b3}.${exts[1]}"
