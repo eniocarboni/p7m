@@ -119,6 +119,19 @@ Senza utilizzare il trucco basta aprire un terminale ed andare nella cartella do
   python -m SimpleHTTPServer 8000
 ```
 
+Se ottenete un errore del tipo: 
+
+```
+  ... No module named SimpleHTTPServer
+  ... python not found (Comando python non trovato)
+```
+allora provare:
+
+```
+  cd $HOME/fatture_in_xml
+  python3 -m http.server 8000
+```
+
 che lancerà un semplice server web sulla porta locale 8000.
 Basterà quindi collegarsi con il browser su http://localhost:8000 e cliccare sul file xml che si vuole visualizzare.
 Per chiudere il server web in python basta premere su terminale **CTRL-C**.
