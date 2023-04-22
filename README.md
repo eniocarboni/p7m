@@ -102,6 +102,8 @@ Per Firefox vedi [CVE-2019-11730](https://www.mozilla.org/en-US/security/advisor
 
 Se vuoi puoi provare a tuo rischio ad eludere il controllo andando all'url **about:config** e mettendo (o aggiungendo) **privacy.file_unique_origin** da **true** a **false**.
 
+Da Firefix 95+ **privacy.file_unique_origin** non esiste più e si può utilizzare al suo posto **security.fileuri.strict_origin_policy**.
+
 Per Chrome, invece, non credo ci sia un'opzione di configurazione ma l'unico modo è lanciarlo con l'opzione **--allow-file-access-from-files**.
 
 Per aggiungere tale opzione, ad esempio in **kde**, basta modificare il file **/usr/share/applications/google-chrome.desktop** nella riga **Exec=** oppure, meglio, copiarlo in locale in **$HOME/.local/share/applications/** e poi modificarlo.
