@@ -14,9 +14,9 @@ Questo script funziona sotto linux sia in modalità testuale che grafica (usare 
 
 ## SINOSSI
 ```
-  p7m -g                        # Permettere di selezionare un file p7m per estrarne il contenuto
-  p7m [-x] [-g] [-h] <file.p7m> # Per estrarre il contenuto
-  p7m -v [-g] [-h] <file.p7m>   # Per verificare il p7m
+  p7m -g [-e]                   # Permettere di selezionare un file p7m per estrarne il contenuto
+  p7m [-x] [-g] [-e] [-h] <file.p7m> # Per estrarre il contenuto
+  p7m -v [-g] [-e] [-h] <file.p7m>   # Per verificare il p7m
   p7m -c [-g] [-h] <file.p7m>   # Per i certificati
   p7m -d [-g] [-h] <file.p7m>   # Per il debug (esperti)
   p7m -p [-h]                   # Per scaricare la nuova CA
@@ -145,6 +145,27 @@ Ora tutti i file xml dovrebbero esser visibili con il formato SdI, tranne quelli
 ```
   <?xml-stylesheet type="text/xsl" href="fatturapa_v1.2.1.xsl"?>
 ```
+
+## FAQ
+
+### Ho Firefox installato con **snap** ed è il visualizzatore di *xml* ma estraendo le fatture elettroniche con **p7m** non trova il file
+
+**p7m** quando estrae il contenuto lo metto nella directory temporanea di sistema che in genere è /tmp.
+Snaps usa una directory temporanea isolata per ogni applicazione in modo da non sovrapporsi tra le varie snap e le applicazioni di sistema.
+Quindi per le app sotto **snap** non dovrebbe esser accessibile /tmp, vedi [forum snapcraft](https://forum.snapcraft.io/t/accessing-tmp-from-snaps/22384)
+
+Per superare questo problema basta utilizzare la variabile d'ambiente **TMPDIR** impostandola su una directory accessibile:
+```
+mkdir $HOME/tmp
+export TMPDIR=$HOME/tmp
+```
+e poi utilizzare il comando **p7m** (sulla stessa shell).
+
+Per rendere definitivo e valido solo per **p7m** basta aggiungere
+```
+export TMPDIR=$HOME/tmp
+```
+al suo file di configurazione *$HOME/.config/p7m/p7m_config*
 
 ## COPYRIGHT
 
