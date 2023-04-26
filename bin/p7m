@@ -720,9 +720,9 @@ opensslVerify() {
 	fi
 	if [ -n "$3" -a "$3" = "no_out" ]; then
 		noout='-out /dev/null 2>/dev/null'
-		openssl ${P7MTYPE} -verify -CAfile "${CONF_DIR}/ca.pem" -in "$1" -inform "$format" -out /dev/null 2>/dev/null
+		openssl ${P7MTYPE} -verify ${P7MEXTRAOPT} -CAfile "${CONF_DIR}/ca.pem" -in "$1" -inform "$format" -out /dev/null 2>/dev/null
 	else
-		openssl ${P7MTYPE} -verify -CAfile "${CONF_DIR}/ca.pem" -in "$1" -inform "$format"
+		openssl ${P7MTYPE} -verify ${P7MEXTRAOPT} -CAfile "${CONF_DIR}/ca.pem" -in "$1" -inform "$format"
 	fi
 	return $?
 }
@@ -744,7 +744,7 @@ opensslTextStruct() {
 		ret=$?
 	else
 		# cms
-		openssl cms -inform DER -verify -noverify -nosigs -cmsout -print -text -in "$1"
+		openssl cms -inform DER -verify -noverify ${P7MEXTRAOPT} -nosigs -cmsout -print -text -in "$1"
 		ret=$?
 	fi
 	return "$ret"
@@ -992,13 +992,13 @@ is_p7m() {
 		return 0
 	fi
 	# check if CMS (and no SMIME) in pem format
-	openssl cms -inform PEM -verify -noverify -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
+	openssl cms -inform PEM -verify -noverify ${P7MEXTRAOPT} -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
 	if [ $? == 0 ]; then
 		echo "0"
 		return 0
 	fi
 	# check if CMS (and no SMIME) in der format
-	openssl cms -inform DER -verify -noverify -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
+	openssl cms -inform DER -verify -noverify ${P7MEXTRAOPT} -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
 	if [ $? == 0 ]; then
 		echo "0"
 		return 0
@@ -1026,6 +1026,21 @@ is_p7m() {
 getP7mType() {
 	local file_test=$1
 	local real_file_test=$(from_base64_to_p7m "$file_test")
+	# check if CMS (and no SMIME) in pem format
+	openssl cms -inform PEM -verify -noverify ${P7MEXTRAOPT} -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		echo "cms"
+		return 0
+	fi
+	# check if CMS (and no SMIME) in der format
+	openssl cms -inform DER -verify -noverify ${P7MEXTRAOPT} -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
+	if [ $? == 0 ]; then
+		echo "cms"
+		return 0
+	fi
+	if [ "$real_file_test" != "$file_test" ]; then
+		del_oldtmp_file "$real_file_test"
+	fi
 	# check if in pem format
 	openssl pkcs7 -print_certs -text -noout -inform pem -in "$real_file_test" >/dev/null 2>&1
 	if [ $? == 0 ]; then
@@ -1037,21 +1052,6 @@ getP7mType() {
 	if [ $? == 0 ]; then
 		echo "smime"
 		return 0
-	fi
-	# check if CMS (and no SMIME) in pem format
-	openssl cms -inform PEM -verify -noverify -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
-	if [ $? == 0 ]; then
-		echo "cms"
-		return 0
-	fi
-	# check if CMS (and no SMIME) in der format
-	openssl cms -inform DER -verify -noverify -nosigs -cmsout -noout -in "$real_file_test" >/dev/null 2>&1
-	if [ $? == 0 ]; then
-		echo "cms"
-		return 0
-	fi
-	if [ "$real_file_test" != "$file_test" ]; then
-		del_oldtmp_file "$real_file_test"
 	fi
 	return 1
 }
@@ -1074,7 +1074,7 @@ from_pem_to_der() {
 		openssl pkcs7 -outform der -in "$file_pem" -out "$der" >/dev/null 2>&1
 	else
 		# cms
-		openssl cms -inform PEM -verify -noverify -nosigs -cmsout -outform DER -out "$der" -in "$file_pem" >/dev/null 2>&1
+		openssl cms -inform PEM -verify -noverify ${P7MEXTRAOPT} -nosigs -cmsout -outform DER -out "$der" -in "$file_pem" >/dev/null 2>&1
 	fi
 	if [ $? != 0 ]; then
 		del_oldtmp_file "$der"
@@ -1230,7 +1230,7 @@ cert() {
 	else
 		# cms
 		local certsfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
-		openssl cms -verify -inform DER -CAfile "${CONF_DIR}/ca.pem" -certsout ${certsfile} -out /dev/null -in "$1" -out /dev/null 2>/dev/null
+		openssl cms -verify ${P7MEXTRAOPT} -inform DER -CAfile "${CONF_DIR}/ca.pem" -certsout ${certsfile} -out /dev/null -in "$1" -out /dev/null 2>/dev/null
 		str=$(openssl crl2pkcs7 -nocrl -certfile ${certsfile} | openssl pkcs7 -print_certs -text)
 		R=$?
 		del_oldtmp_file "${certsfile}"
@@ -1257,7 +1257,7 @@ debug_pkcs7() {
 		R=$?
 	else
 		# cms
-		str=$(openssl cms -inform DER -verify -noverify -nosigs -cmsout -print -text -in "$1" 2>&1)
+		str=$(openssl cms -inform DER -verify -noverify ${P7MEXTRAOPT} -nosigs -cmsout -print -text -in "$1" 2>&1)
 		R=$?
 	fi
 	echo "$str"
@@ -1423,7 +1423,10 @@ inizialize() {
 # Global variable declaration
 declare L DWN OPEN XDIALOG
 
-while getopts ":pvcdxght" arg; do
+# no_attr_verify: if yes insert option "-no_attr_verify" on "openssl cms" command so "Do not verify signed attribute signatures"
+# see man openssl-cms
+no_attr_verify="yes"
+while getopts ":pvcdxghte" arg; do
   case $arg in
       p)
 	 op='p'
@@ -1445,6 +1448,9 @@ while getopts ":pvcdxght" arg; do
       ;;
       t)
 	  op='test'
+      ;;
+      e)
+          no_attr_verify=0
       ;;
       h)
 	  op='h'
@@ -1503,6 +1509,10 @@ if [ "$op" != 'test' ]; then
 	while [ $op_continue_ret -eq 0 -a $(is_p7m "$checkfile") -eq 0 ]; do
 		level=$(( $level + 1 ))
 		P7MTYPE=$(getP7mType "$checkfile")
+		P7MEXTRAOPT=''
+		if [ $P7MTYPE == 'cms' -a $no_attr_verify == 'yes' ]; then
+			P7MEXTRAOPT="-no_attr_verify"
+		fi
 		# Se necessario converto da base64
 		myfile_uu=$(from_base64_to_p7m "$checkfile")
 		unlink_files+=("$myfile_uu")
@@ -1546,7 +1556,7 @@ if [ "$op" != 'test' ]; then
 			fi
 		fi
 		checkfile=$(mktemp --tmpdir "p7m_tmp.XXXXXXXXXX")
-		err=`openssl ${P7MTYPE} -verify -noverify -in "$myfile" -inform DER -out "$checkfile" 2>&1`
+		err=`openssl ${P7MTYPE} -verify -noverify ${P7MEXTRAOPT} -in "$myfile" -inform DER -out "$checkfile" 2>&1`
 		code=$?
 		unlink_files+=("$checkfile")
 		if [ $code != "0" ]; then

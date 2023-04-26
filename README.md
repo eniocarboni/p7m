@@ -14,13 +14,14 @@ Questo script funziona sotto linux sia in modalità testuale che grafica (usare 
 
 ## SINOSSI
 ```
-  p7m -g                        # Permettere di selezionare un file p7m per estrarne il contenuto [New]
+  p7m -g                        # Permettere di selezionare un file p7m per estrarne il contenuto
   p7m [-x] [-g] [-h] <file.p7m> # Per estrarre il contenuto
   p7m -v [-g] [-h] <file.p7m>   # Per verificare il p7m
   p7m -c [-g] [-h] <file.p7m>   # Per i certificati
   p7m -d [-g] [-h] <file.p7m>   # Per il debug (esperti)
   p7m -p [-h]                   # Per scaricare la nuova CA
   p7m -t                        # Per test o per poterla usare come libreria (source p7m -t)
+  p7m -e                        # Verifica anche le firme degli attributi CMS [New] 
 ```
 
 **dove**
@@ -33,6 +34,9 @@ Questo script funziona sotto linux sia in modalità testuale che grafica (usare 
 * -g con questo flag tutti i risultati vengono visualizzati su finestre grafiche altrimenti tutto finisce sullo standard output.
   Come finestre di dialogo vengono prese in considerazione i comandi **kdialog** se presente, altrimenti **zenity** ed infine **xmessage**.
   L'ordine di ricerca può essere modificato tramite file di configurazione impostando la variabile *DIALOG_ORDER*
+* -e Verifica anche le firme degli attributi CMS che non è più automatica.
+  Adesso per tale verifica bisogna aggiungere '-e' mentre nelle precedenti versioni veniva fatto in automatico.
+  Verifica non più automatica perché genera diverse verifiche fallite dovute forse all'uso di librerie un pochino vecchie.
 
 Se nessuno dei parametri **-v, -c o -d** viene utilizzato **p7m** controlla e verifica la firma ed estrae l'allegato visualizzandolo con il programma associato dal suo mime-type (p7m viewer).
 Per aprire il programma associato ad uno specifico mime type viene utilizzato il comando **xdg-open** se presente, altrimenti **gvfs-open** ed infine **gnome-open**.
