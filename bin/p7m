@@ -1357,7 +1357,7 @@ p7mplugin() {
 		getxslenvs $version
 		if [ -n "$testif_xmlstylesheet" ]; then
 			# Delete the xml-stylesheet so we can add the right version 
-			sed -i -e 's/<\?xml-stylesheet.*.xsl"\?>.*$//' -e '/^$/d' "$file"
+			sed -i -r -e 's/<\?xml-stylesheet.*.xsl"\?>.*$//' -e '/^$/d' "$file"
 		fi
 		sed -i 's/\(<\([[:alnum:]]*:\)*FatturaElettronica \)/<\?xml-stylesheet type="text\/xsl" href="'$xsl_file'"\?>\1/' "$file"
 		copyxslfile "$version" "$(dirname $file)"
