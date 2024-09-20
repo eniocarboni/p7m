@@ -39,8 +39,13 @@ NC='\033[0m' # No Color
 # La versione 1.1 non e' piu' presente su www.fatturapa.gov.it quindi uso un mio gist per ora
 XSL_V11="fatturapa_v1.1.xsl"
 XSL_V11_URL="https://gist.githubusercontent.com/eniocarboni/f9098a08abf03eefe632755aacf7f10b/raw/69f003ca80283f374aabaf42b3c4477941fa2bab/fatturapa_v1.1.xsl"
-XSL_V12="fatturapa_v1.2.1.xsl"
-XSL_V12_URL="https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.2.1/Foglio_di_stile_fatturaPA_v1.2.1.xsl"
+# old v1.2.1
+#XSL_V12="fatturapa_v1.2.1.xsl"
+#XSL_V12_URL="https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.2.1/Foglio_di_stile_fatturaPA_v1.2.1.xsl"
+XSL_V12="fattura_ordinaria_ver1.2.2.xsl"
+XSL_V12_URL="https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.2.2/Foglio_di_stile_fattura_ordinaria_ver1.2.2.xsl"
+XSL_PA_V12="fattura_PA_ver1.2.2.xsl"
+XSL_PA_V12_URL="https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.2.2/Foglio_di_stile_fattura_PA_ver1.2.2.xsl"
 # XSL_OLD_TIME_SEC: after that second the xsl file will be download
 XSL_OLD_TIME_SEC=1296000
 # ------------------------------------------------------------------------
@@ -1279,6 +1284,9 @@ getxslenvs() {
 	if [ "$version" = "fpr12" ]; then
 		xsl_file=${XSL_V12}
 		xsl_url=${XSL_V12_URL}
+	elif [ "$version" = "fpa12" ]; then
+		xsl_file=${XSL_PA_V12}
+		xsl_url=${XSL_PA_V12_URL}
 	elif [ "$version" = "1.1" ]; then
 		xsl_file=${XSL_V11}
 		xsl_url=${XSL_V11_URL}
@@ -1347,9 +1355,11 @@ p7mplugin() {
 		# found version and make all lowercase
 		version=$(echo $tag_FatturaElettronica | sed -e 's/^.*versione="\([^"]*\).*$/\1/' | tr '[A-Z]' '[a-z]')
 		getxslenvs $version
-		if [ -z "$testif_xmlstylesheet" ]; then
-			sed -i 's/\(<\([[:alnum:]]*:\)*FatturaElettronica \)/<\?xml-stylesheet type="text\/xsl" href="'$xsl_file'"\?>\1/' "$file"
+		if [ -n "$testif_xmlstylesheet" ]; then
+			# Delete the xml-stylesheet so we can add the right version 
+			sed -i -e 's/<\?xml-stylesheet.*.xsl"\?>.*$//' -e '/^$/d' "$file"
 		fi
+		sed -i 's/\(<\([[:alnum:]]*:\)*FatturaElettronica \)/<\?xml-stylesheet type="text\/xsl" href="'$xsl_file'"\?>\1/' "$file"
 		copyxslfile "$version" "$(dirname $file)"
 		IS_FATTURA=1
 

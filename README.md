@@ -114,7 +114,9 @@ Per aggiungere tale opzione, ad esempio in **kde**, basta modificare il file **/
 
 Nel caso in cui le fatture elettroniche sono state tutte estratte in **xml** in una cartella e si vuole vedere le fatture con il browser nel formato SdI allora basta scaricarsi il file xsl nella stessa cartella:
 ```
-  wget -O fatturapa_v1.2.1.xsl https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.2.1/Foglio_di_stile_fatturaPA_v1.2.1.xsl
+  wget -O fatturapa_v1.1.xsl https://gist.githubusercontent.com/eniocarboni/f9098a08abf03eefe632755aacf7f10b/raw/69f003ca80283f374aabaf42b3c4477941fa2bab/fatturapa_v1.1.xsl
+  wget -O fattura_PA_ver1.2.2.xsl https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.2.2/Foglio_di_stile_fattura_PA_ver1.2.2.xsl
+  wget -O fattura_ordinaria_ver1.2.2.xsl https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.2.2/Foglio_di_stile_fattura_ordinaria_ver1.2.2.xsl
 ```
 Per funzionare, sia Firefox che Chrome, hanno bisogno del trucco visto poco sopra.
 
