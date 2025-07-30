@@ -29,7 +29,7 @@ Questo script funziona sotto linux sia in modalità testuale che grafica (usare 
 * -x estrae il file e non tenta di visualizzarlo;
 * -v per verificare il p7m e la validita dei certificati e delle firme;
 * -c visualizza i certificati di firma sia come testuali che come certificati binari (in formato PEM);
-* -p per forzare lo scaricamento dei nuovi certificati [CA](https://it.wikipedia.org/wiki/Certificate_authority) registrati al [CNIPA] (https://eidas.agid.gov.it/TL/TSL-IT.xml);
+* -p per forzare lo scaricamento dei nuovi certificati [CA](https://it.wikipedia.org/wiki/Certificate_authority) registrati al [CNIPA](https://eidas.agid.gov.it/TL/TSL-IT.xml);
 * -d utili per il debug del p7m (per esperti);
 * -g con questo flag tutti i risultati vengono visualizzati su finestre grafiche altrimenti tutto finisce sullo standard output.
   Come finestre di dialogo vengono prese in considerazione i comandi **kdialog** se presente, altrimenti **zenity** ed infine **xmessage**.
